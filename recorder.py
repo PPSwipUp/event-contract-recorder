@@ -99,15 +99,19 @@ def network():
 
 
 def get(url, **params):
-    for attempt in (1, 2):                              # the hotspot occasionally drops a TLS handshake: retry once
+    """GET with retries: a dropped TLS handshake, rate limiting (429) or a server error backs off and retries"""
+    for attempt in range(5):
         try:
             r = requests.get(url, params=params or None, headers=UA, timeout=30, verify=certifi.where())
+            if r.status_code == 429 or r.status_code >= 500:
+                raise requests.exceptions.HTTPError(f"{r.status_code}", response=r)
             r.raise_for_status()
             return r.json()
-        except requests.exceptions.SSLError:
-            if attempt == 2:
+        except (requests.exceptions.SSLError, requests.exceptions.HTTPError) as err:
+            code = getattr(err.response, "status_code", None)
+            if attempt == 4 or (code is not None and code != 429 and code < 500):
                 raise
-            time.sleep(2)
+            time.sleep(2 ** attempt)
 
 
 # ------------------------------------------------------------------ storage
@@ -167,9 +171,9 @@ def record_kalshi(ts, settled):
         try:
             return [{"ts": ts, "series": s, **{k: m.get(k) for k in KEEP_K}} for m in kalshi_markets(s, status)], None
         except Exception as err:
-            return [], f"{s}:{type(err).__name__}"
+            return [], f"{s}:{getattr(getattr(err, 'response', None), 'status_code', type(err).__name__)}"
 
-    with ThreadPoolExecutor(8) as ex:
+    with ThreadPoolExecutor(4) as ex:
         res = list(ex.map(one, jobs))
     rows = [r for rs, _ in res for r in rs]
     return write("kalshi", rows), [b for _, b in res if b]
