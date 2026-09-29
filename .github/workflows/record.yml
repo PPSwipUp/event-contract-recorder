@@ -1,0 +1,37 @@
+name: record
+# every 5 minutes: fetch Kalshi / Polymarket / spot prices and commit them to the `data` branch
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: data          # record and compact never touch the data branch at the same time
+  cancel-in-progress: false
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: data
+          path: store
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q requests certifi
+      - run: python recorder.py
+        env:
+          RECORDER_OUT: store
+      - name: commit
+        working-directory: store
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "record $(date -u +%FT%TZ)" || exit 0
+          git push -q
