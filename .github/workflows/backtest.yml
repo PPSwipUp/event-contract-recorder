@@ -32,6 +32,8 @@ jobs:
         env:
           DEBUG_ONCE: ${{ inputs.debug }}
       - run: python backfill/backtest.py --data out
+      - run: python fillcheck.py --data ../out
+        working-directory: backfill
       - name: publish
         env:
           GH_TOKEN: ${{ github.token }}

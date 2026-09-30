@@ -61,6 +61,7 @@ def main():
     ap.add_argument("--data", default="backfill/out")
     a = ap.parse_args()
     lines = ["# Volatility model vs Kalshi's real hourly range prices", ""]
+    picks = []
     for series, product in PAIRS.items():
         B = pd.read_parquet(os.path.join(a.data, f"{series}.parquet"))
         spot = pd.read_parquet(os.path.join(a.data, f"{product}.parquet"))
@@ -115,6 +116,13 @@ def main():
                         buy_n = q & (bid > 0) & (bid < 1) & (100 * (bid - p) - fn > m)
                         pnl = np.r_[(100 * y - 100 * ask - fy)[buy_y], (100 * (1 - y) - 100 * (1 - bid) - fn)[buy_n]]
                         cost = np.r_[100 * ask[buy_y], 100 * (1 - bid[buy_n])]
+                        if est == "ppc" and m == 5 and n == 100:        # the trades the fill check looks at
+                            picks.append(pd.DataFrame({"series": series, "lag_min": lag, "ticker": B.ticker.values[buy_y], "side": "yes",
+                                                       "price": ask[buy_y], "quote_ts": B.quote_ts.values[buy_y],
+                                                       "pnl_c": (100 * y - 100 * ask - fy)[buy_y]}))
+                            picks.append(pd.DataFrame({"series": series, "lag_min": lag, "ticker": B.ticker.values[buy_n], "side": "no",
+                                                       "price": 1 - bid[buy_n], "quote_ts": B.quote_ts.values[buy_n],
+                                                       "pnl_c": (100 * (1 - y) - 100 * (1 - bid) - fn)[buy_n]}))
                         res.append({"vol": est, "margin_c": m, "order_size": n, "trades": len(pnl),
                                     "cents_per_trade": pnl.mean() if len(pnl) else np.nan,
                                     "se": pnl.std() / math.sqrt(len(pnl)) if len(pnl) > 1 else np.nan,
@@ -126,6 +134,7 @@ def main():
                       + f", **market {R.market_brier.iloc[0]:.4f}**", ""]
             lines += [R.drop(columns=["model_brier", "market_brier"]).round(3).to_markdown(index=False), ""]
         print(f"{series} done", flush=True)
+    pd.concat(picks, ignore_index=True).to_parquet(os.path.join(a.data, "picks.parquet"))
     text = "\n".join(lines)
     open(os.path.join(a.data, "RESULTS.md"), "w").write(text)
     print(text)
