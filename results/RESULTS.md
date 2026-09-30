@@ -2,11 +2,11 @@
 
 ## KXBTC
 
-87 hourly events, 16032 brackets, 2026-09-26 to 2026-09-30; vol model trained from 2026-05-01.
+40 hourly events, 7412 brackets, 2026-09-28 to 2026-09-30; vol model trained from 2026-08-01.
 
-Brackets with a live quote 1 h before: 0%. Median spread 3c.
+Brackets with a live quote 1 h before: 0%. Median spread 2c.
 
-Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0361, last 0.0357, day 0.0359, **market 0.0373**
+Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0267, last 0.0250, day 0.0267, **market 0.0261**
 
 | vol   |   margin_c |   order_size |   trades |   cents_per_trade |   se |   return_on_cost |
 |:------|-----------:|-------------:|---------:|------------------:|-----:|-----------------:|
@@ -31,11 +31,11 @@ Accuracy of the probabilities (Brier score, lower is better) on quoted brackets:
 
 ## KXETH
 
-87 hourly events, 25320 brackets, 2026-09-26 to 2026-09-30; vol model trained from 2026-05-01.
+40 hourly events, 11740 brackets, 2026-09-28 to 2026-09-30; vol model trained from 2026-08-01.
 
-Brackets with a live quote 1 h before: 0%. Median spread 5c.
+Brackets with a live quote 1 h before: 0%. Median spread 4c.
 
-Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0680, last 0.0710, day 0.0692, **market 0.0623**
+Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0924, last 0.0947, day 0.0904, **market 0.0939**
 
 | vol   |   margin_c |   order_size |   trades |   cents_per_trade |   se |   return_on_cost |
 |:------|-----------:|-------------:|---------:|------------------:|-----:|-----------------:|
