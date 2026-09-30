@@ -63,26 +63,24 @@ def one_event(args):
     if not ms:
         return []
     c = int(close.timestamp())
-    d = get(f"{K}/series/{series}/events/{ev}/candlesticks", period_interval=1, start_ts=c - 3960, end_ts=c - 3600)
+    # quotes start when the market opens, ~59 min before settlement: take the first minute with a quote in
+    # the first 5 minutes of trading, and remember when it was (the backtest uses the spot price at that minute)
+    d = get(f"{K}/series/{series}/events/{ev}/candlesticks", period_interval=1, start_ts=c - 3600, end_ts=c - 3300)
     quote = {}
-    if os.environ.get("DEBUG_ONCE") == ev:
-        mc = (d or {}).get("market_candlesticks", [])
-        print("DEBUG", ev, c, "markets", len(ms), ms[0]["ticker"], "candle tickers", len((d or {}).get("market_tickers", [])),
-              (d or {}).get("market_tickers", [""])[:2], "nonempty", sum(1 for x in mc if x),
-              [x["end_period_ts"] for x in next((x for x in mc if x), [])][:8], flush=True)
     if d:
         for t, cs in zip(d.get("market_tickers", []), d.get("market_candlesticks", [])):
-            cs = [x for x in cs if x["end_period_ts"] <= c - 3600]      # last minute before the decision
+            cs = [x for x in cs if x["yes_ask"].get("close_dollars") is not None]
             if cs:
-                q = cs[-1]
-                quote[t] = (q["yes_bid"].get("close_dollars"), q["yes_ask"].get("close_dollars"), q.get("volume_fp"))
+                q = cs[0]
+                quote[t] = (q["yes_bid"].get("close_dollars"), q["yes_ask"].get("close_dollars"), q.get("volume_fp"),
+                            q["end_period_ts"])
     rows = []
     for m in ms:
-        bid, ask, vol = quote.get(m["ticker"], (None, None, None))
+        bid, ask, vol, qts = quote.get(m["ticker"], (None, None, None, None))
         rows.append({"series": series, "event": ev, "close": close.isoformat(), "ticker": m["ticker"],
                      "floor": m.get("floor_strike"), "cap": m.get("cap_strike"), "strike_type": m.get("strike_type"),
                      "result": m.get("result"), "settle_value": m.get("expiration_value"),
-                     "bid": bid, "ask": ask, "vol_1m": vol, "volume_total": m.get("volume_fp") or m.get("volume")})
+                     "bid": bid, "ask": ask, "vol_1m": vol, "quote_ts": qts, "volume_total": m.get("volume_fp") or m.get("volume")})
     return rows
 
 

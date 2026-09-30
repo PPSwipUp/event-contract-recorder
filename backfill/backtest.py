@@ -37,9 +37,7 @@ def hourly(spot):
     W = pd.DataFrame({"open": s.groupby(g).first(), "close": s.groupby(g).last(),
                       "rv": np.sqrt((r ** 2).groupby(g).sum())})
     W["ret"] = W.close - W.open
-    # price at the decision: the close of the minute before the hour starts = open of this window
-    W["s0"] = s.shift(1).groupby(g).first()
-    return W.dropna()
+    return W.dropna(), s
 
 
 def sigmas(W):
@@ -66,7 +64,7 @@ def main():
     for series, product in PAIRS.items():
         B = pd.read_parquet(os.path.join(a.data, f"{series}.parquet"))
         spot = pd.read_parquet(os.path.join(a.data, f"{product}.parquet"))
-        W = hourly(spot)
+        W, minute = hourly(spot)
         S = sigmas(W)
         B["close"] = pd.to_datetime(B.close, utc=True)
         B["win"] = B.close - pd.Timedelta(hours=1)                   # the hour being predicted
@@ -77,7 +75,11 @@ def main():
             B[c] = pd.to_numeric(B[c], errors="coerce")
         B["y"] = (B.result == "yes").astype(float)
         B = B[B.result.isin(["yes", "no"])]
-        s0 = W.s0.reindex(B.win).values
+        B["quote_ts"] = pd.to_numeric(B.quote_ts, errors="coerce")
+        qt = pd.to_datetime(B.quote_ts, unit="s", utc=True)
+        # spot at the quote's minute (candle end = start of the next minute); time left until settlement
+        s0 = minute.reindex(qt - pd.Timedelta(minutes=1)).values
+        left = np.sqrt(np.clip((B.close - qt).dt.total_seconds().values / 3600, 0.01, 1))
         lines += [f"## {series}", "",
                   f"{B.event.nunique()} hourly events, {len(B)} brackets, {B.win.min():%Y-%m-%d} to {B.win.max():%Y-%m-%d}; "
                   f"vol model trained from {W.index[0]:%Y-%m-%d}.", ""]
@@ -90,7 +92,7 @@ def main():
             ok = np.isfinite(sig_tr) & (sig_tr > 0)
             k = np.median(np.abs(r_tr[ok]) / sig_tr[ok])
             z = np.sort(r_tr[ok] / (k * sig_tr[ok]))
-            sig = k * S[est].reindex(B.win).values
+            sig = k * S[est].reindex(B.win).values * left
 
             def cdf(K):
                 x = (np.log(K) - s0) / sig
@@ -99,7 +101,7 @@ def main():
             lo = np.where(B.floor.isna(), 0.0, cdf(B.floor.values))
             p = np.clip(hi - lo, 0, 1)
             y, bid, ask = B.y.values, B.bid.values, B.ask.values
-            q = quoted.values & np.isfinite(p)
+            q = quoted.values & np.isfinite(p) & np.isfinite(sig)
             mid = (bid + ask) / 2
             brier_m = np.mean((p[q] - y[q]) ** 2)
             brier_mkt = np.mean((mid[q] - y[q]) ** 2)
