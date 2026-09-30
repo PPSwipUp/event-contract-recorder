@@ -35,6 +35,10 @@ jobs:
           x = w.Watcher.__new__(w.Watcher); x.series = "KXBTC"; x.markets = {}
           n = x.load_upcoming()
           opens = sorted({m["open_ts"] for m in x.markets.values()})
+          import requests
+          for st in ("unopened", "open"):
+              r = requests.get(w.REST + "/markets", params={"series_ticker": "KXBTC", "status": st, "limit": 5}, timeout=30)
+              print(st, r.status_code, [m["ticker"] for m in r.json().get("markets", [])][:3])
           print("upcoming markets with strikes:", n, "; next opens (UTC):",
                 [time.strftime("%H:%M", time.gmtime(t)) for t in opens if t > time.time()][:5])
           PY

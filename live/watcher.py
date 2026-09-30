@@ -164,20 +164,23 @@ class Watcher:
 
     def load_upcoming(self):
         """strikes of every open or soon-to-open market in the series (REST, before the open)"""
-        cursor, n = None, 0
-        while True:
-            p = {"series_ticker": self.series, "status": "unopened,open", "limit": 1000}
-            if cursor:
-                p["cursor"] = cursor
-            d = requests.get(f"{REST}/markets", params=p, timeout=30).json()
-            for m in d.get("markets", []):
-                self.markets[m["ticker"]] = {
-                    "floor": m.get("floor_strike"), "cap": m.get("cap_strike"),
-                    "close_ts": pd.Timestamp(m["close_time"]).timestamp(), "open_ts": pd.Timestamp(m["open_time"]).timestamp()}
-                n += 1
-            cursor = d.get("cursor")
-            if not cursor or not d.get("markets"):
-                return n
+        n = 0
+        for status in ("unopened", "open"):
+            cursor = None
+            while True:
+                p = {"series_ticker": self.series, "status": status, "limit": 1000}
+                if cursor:
+                    p["cursor"] = cursor
+                d = requests.get(f"{REST}/markets", params=p, timeout=30).json()
+                for m in d.get("markets", []):
+                    self.markets[m["ticker"]] = {
+                        "floor": m.get("floor_strike"), "cap": m.get("cap_strike"),
+                        "close_ts": pd.Timestamp(m["close_time"]).timestamp(), "open_ts": pd.Timestamp(m["open_time"]).timestamp()}
+                    n += 1
+                cursor = d.get("cursor")
+                if not cursor or not d.get("markets"):
+                    break
+        return n
 
     def check(self, ticker, recv_ms):
         m, b = self.markets.get(ticker), self.books.get(ticker)
