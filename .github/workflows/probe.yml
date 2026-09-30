@@ -1,0 +1,21 @@
+name: probe
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          K=https://api.elections.kalshi.com/trade-api/v2
+          E=$(curl -s "$K/events?series_ticker=KXBTC&status=settled&limit=2" | tee ev.json | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['events'][0]['event_ticker'])")
+          python3 -c "import json;d=json.load(open('ev.json'));e=d['events'][0];print({k:e[k] for k in e if k!='markets'})"
+          echo "event $E"
+          now=$(date +%s)
+          curl -s "$K/series/KXBTC/events/$E/candlesticks?period_interval=60&start_ts=$((now-86400*3))&end_ts=$now" | head -c 900; echo
+          echo HIST
+          curl -s "$K/historical/events?series_ticker=KXBTC&limit=2" | head -c 600; echo
+          curl -s "$K/historical/markets?series_ticker=KXBTC&limit=2" | head -c 600; echo
+          T=KXBTC-25JUN0112-B105250
+          curl -s "$K/historical/markets/$T" | head -c 300; echo
+          curl -s "$K/historical/markets/$T/candlesticks?period_interval=60&start_ts=1748700000&end_ts=1748790000" | head -c 500; echo
+          echo COINBASE
+          curl -s "https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=60&start=2025-01-01T00:00:00Z&end=2025-01-01T05:00:00Z" | head -c 200; echo
