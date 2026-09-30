@@ -20,6 +20,7 @@ import requests
 K = "https://api.elections.kalshi.com/trade-api/v2"
 ET = ZoneInfo("America/New_York")
 SERIES = {"KXBTC": "BTC-USD", "KXETH": "ETH-USD"}
+OFFSETS = (1, 5, 15)                                   # minutes after the market opens
 MON = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 S = requests.Session()
 S.headers["User-Agent"] = "research backfill (read-only)"
@@ -63,24 +64,31 @@ def one_event(args):
     if not ms:
         return []
     c = int(close.timestamp())
-    # quotes start when the market opens, ~59 min before settlement: take the first minute with a quote in
-    # the first 5 minutes of trading, and remember when it was (the backtest uses the spot price at that minute)
-    d = get(f"{K}/series/{series}/events/{ev}/candlesticks", period_interval=1, start_ts=c - 3600, end_ts=c - 3300)
+    # quotes start when the market opens, ~59 min before settlement.  Keep the quote 1, 5 and 15 minutes into
+    # trading (the backtest checks whether any edge survives once traders have arrived)
+    d = get(f"{K}/series/{series}/events/{ev}/candlesticks", period_interval=1, start_ts=c - 3600, end_ts=c - 2640)
     quote = {}
     if d:
         for t, cs in zip(d.get("market_tickers", []), d.get("market_candlesticks", [])):
             cs = [x for x in cs if x["yes_ask"].get("close_dollars") is not None]
-            if cs:
-                q = cs[0]
-                quote[t] = (q["yes_bid"].get("close_dollars"), q["yes_ask"].get("close_dollars"), q.get("volume_fp"),
-                            q["end_period_ts"])
+            if not cs:
+                continue
+            first = cs[0]["end_period_ts"]
+            for lag in OFFSETS:
+                q = [x for x in cs if x["end_period_ts"] <= first + 60 * (lag - 1)]
+                if q:
+                    q = q[-1]
+                    quote[(t, lag)] = (q["yes_bid"].get("close_dollars"), q["yes_ask"].get("close_dollars"),
+                                       q.get("volume_fp"), q["end_period_ts"])
     rows = []
     for m in ms:
-        bid, ask, vol, qts = quote.get(m["ticker"], (None, None, None, None))
-        rows.append({"series": series, "event": ev, "close": close.isoformat(), "ticker": m["ticker"],
-                     "floor": m.get("floor_strike"), "cap": m.get("cap_strike"), "strike_type": m.get("strike_type"),
-                     "result": m.get("result"), "settle_value": m.get("expiration_value"),
-                     "bid": bid, "ask": ask, "vol_1m": vol, "quote_ts": qts, "volume_total": m.get("volume_fp") or m.get("volume")})
+        for lag in OFFSETS:
+            bid, ask, vol, qts = quote.get((m["ticker"], lag), (None, None, None, None))
+            rows.append({"series": series, "event": ev, "close": close.isoformat(), "ticker": m["ticker"],
+                         "floor": m.get("floor_strike"), "cap": m.get("cap_strike"), "strike_type": m.get("strike_type"),
+                         "result": m.get("result"), "settle_value": m.get("expiration_value"), "lag_min": lag,
+                         "bid": bid, "ask": ask, "vol_1m": vol, "quote_ts": qts,
+                         "volume_total": m.get("volume_fp") or m.get("volume")})
     return rows
 
 
@@ -115,7 +123,8 @@ def main():
         df = pd.DataFrame(rows)
         df.to_parquet(os.path.join(a.out, f"{series}.parquet"))
         if len(df):
-            print(f"{series}: quote found for {df.ask.notna().mean():.0%} of brackets; "
+            a_ = pd.to_numeric(df.ask, errors="coerce")
+            print(f"{series}: real offer (ask < $1) for {a_.lt(1).mean():.0%} of bracket quotes; "
                   f"bid>0 {pd.to_numeric(df.bid, errors='coerce').gt(0).mean():.0%}", flush=True)
         print(f"{series}: {len(rows)} brackets in {len({r['event'] for r in rows})} events "
               f"({time.time() - t0:.0f}s)", flush=True)

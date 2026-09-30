@@ -75,53 +75,56 @@ def main():
             B[c] = pd.to_numeric(B[c], errors="coerce")
         B["y"] = (B.result == "yes").astype(float)
         B = B[B.result.isin(["yes", "no"])]
-        B["quote_ts"] = pd.to_numeric(B.quote_ts, errors="coerce")
-        qt = pd.to_datetime(B.quote_ts, unit="s", utc=True)
-        # spot at the quote's minute (candle end = start of the next minute); time left until settlement
-        s0 = minute.reindex(qt - pd.Timedelta(minutes=1)).values
-        left = np.sqrt(np.clip((B.close - qt).dt.total_seconds().values / 3600, 0.01, 1))
         lines += [f"## {series}", "",
-                  f"{B.event.nunique()} hourly events, {len(B)} brackets, {B.win.min():%Y-%m-%d} to {B.win.max():%Y-%m-%d}; "
+                  f"{B.event.nunique()} hourly events, {B.ticker.nunique()} brackets, {B.win.min():%Y-%m-%d} to {B.win.max():%Y-%m-%d}; "
                   f"vol model trained from {W.index[0]:%Y-%m-%d}.", ""]
-        quoted = B.bid.notna() & B.ask.notna()
-        lines += [f"Brackets with a live quote 1 h before: {quoted.mean():.0%}. "
-                  f"Median spread {((B.ask - B.bid)[quoted] * 100).median():.0f}c.", ""]
-        res = []
-        for est in ("ppc", "last", "day"):
-            sig_tr, r_tr = S[est][train].values, W.ret[train].values
-            ok = np.isfinite(sig_tr) & (sig_tr > 0)
-            k = np.median(np.abs(r_tr[ok]) / sig_tr[ok])
-            z = np.sort(r_tr[ok] / (k * sig_tr[ok]))
-            sig = k * S[est].reindex(B.win).values * left
+        B_all = B
+        for lag, B in B_all.groupby("lag_min"):
+            B["quote_ts"] = pd.to_numeric(B.quote_ts, errors="coerce")
+            qt = pd.to_datetime(B.quote_ts, unit="s", utc=True)
+            # spot at the quote's minute (candle end = start of the next minute); time left until settlement
+            s0 = minute.reindex(qt - pd.Timedelta(minutes=1)).values
+            left = np.sqrt(np.clip((B.close - qt).dt.total_seconds().values / 3600, 0.01, 1))
+            quoted = B.bid.notna() & (B.ask > 0) & (B.ask < 1)                # ask $1 = nobody selling
+            lines += [f"### Quotes {lag} min after the market opens", "",
+                      f"Brackets with a real offer: {quoted.mean():.0%}. "
+                      f"Median spread {((B.ask - B.bid)[quoted] * 100).median():.0f}c.", ""]
+            res = []
+            for est in ("ppc", "last", "day"):
+                sig_tr, r_tr = S[est][train].values, W.ret[train].values
+                ok = np.isfinite(sig_tr) & (sig_tr > 0)
+                k = np.median(np.abs(r_tr[ok]) / sig_tr[ok])
+                z = np.sort(r_tr[ok] / (k * sig_tr[ok]))
+                sig = k * S[est].reindex(B.win).values * left
 
-            def cdf(K):
-                x = (np.log(K) - s0) / sig
-                return np.where(np.isnan(K), np.nan, np.searchsorted(z, np.nan_to_num(x)) / len(z))
-            hi = np.where(B.cap.isna(), 1.0, cdf(B.cap.values))
-            lo = np.where(B.floor.isna(), 0.0, cdf(B.floor.values))
-            p = np.clip(hi - lo, 0, 1)
-            y, bid, ask = B.y.values, B.bid.values, B.ask.values
-            q = quoted.values & np.isfinite(p) & np.isfinite(sig)
-            mid = (bid + ask) / 2
-            brier_m = np.mean((p[q] - y[q]) ** 2)
-            brier_mkt = np.mean((mid[q] - y[q]) ** 2)
-            for m in MARGINS:
-                for n in (1, 100):
-                    fy, fn = fee_c(ask, n), fee_c(1 - bid, n)
-                    buy_y = q & (ask > 0) & (ask < 1) & (100 * (p - ask) - fy > m)
-                    buy_n = q & (bid > 0) & (bid < 1) & (100 * (bid - p) - fn > m)
-                    pnl = np.r_[(100 * y - 100 * ask - fy)[buy_y], (100 * (1 - y) - 100 * (1 - bid) - fn)[buy_n]]
-                    cost = np.r_[100 * ask[buy_y], 100 * (1 - bid[buy_n])]
-                    res.append({"vol": est, "margin_c": m, "order_size": n, "trades": len(pnl),
-                                "cents_per_trade": pnl.mean() if len(pnl) else np.nan,
-                                "se": pnl.std() / math.sqrt(len(pnl)) if len(pnl) > 1 else np.nan,
-                                "return_on_cost": pnl.sum() / cost.sum() if len(pnl) else np.nan,
-                                "model_brier": brier_m, "market_brier": brier_mkt})
-        R = pd.DataFrame(res)
-        lines += ["Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: "
-                  + ", ".join(f"{e} {R[R.vol == e].model_brier.iloc[0]:.4f}" for e in ("ppc", "last", "day"))
-                  + f", **market {R.market_brier.iloc[0]:.4f}**", ""]
-        lines += [R.drop(columns=["model_brier", "market_brier"]).round(3).to_markdown(index=False), ""]
+                def cdf(K):
+                    x = (np.log(K) - s0) / sig
+                    return np.where(np.isnan(K), np.nan, np.searchsorted(z, np.nan_to_num(x)) / len(z))
+                hi = np.where(B.cap.isna(), 1.0, cdf(B.cap.values))
+                lo = np.where(B.floor.isna(), 0.0, cdf(B.floor.values))
+                p = np.clip(hi - lo, 0, 1)
+                y, bid, ask = B.y.values, B.bid.values, B.ask.values
+                q = quoted.values & np.isfinite(p) & np.isfinite(sig)
+                mid = (bid + ask) / 2
+                brier_m = np.mean((p[q] - y[q]) ** 2)
+                brier_mkt = np.mean((mid[q] - y[q]) ** 2)
+                for m in MARGINS:
+                    for n in (1, 100):
+                        fy, fn = fee_c(ask, n), fee_c(1 - bid, n)
+                        buy_y = q & (ask > 0) & (ask < 1) & (100 * (p - ask) - fy > m)
+                        buy_n = q & (bid > 0) & (bid < 1) & (100 * (bid - p) - fn > m)
+                        pnl = np.r_[(100 * y - 100 * ask - fy)[buy_y], (100 * (1 - y) - 100 * (1 - bid) - fn)[buy_n]]
+                        cost = np.r_[100 * ask[buy_y], 100 * (1 - bid[buy_n])]
+                        res.append({"vol": est, "margin_c": m, "order_size": n, "trades": len(pnl),
+                                    "cents_per_trade": pnl.mean() if len(pnl) else np.nan,
+                                    "se": pnl.std() / math.sqrt(len(pnl)) if len(pnl) > 1 else np.nan,
+                                    "return_on_cost": pnl.sum() / cost.sum() if len(pnl) else np.nan,
+                                    "model_brier": brier_m, "market_brier": brier_mkt})
+            R = pd.DataFrame(res)
+            lines += ["Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: "
+                      + ", ".join(f"{e} {R[R.vol == e].model_brier.iloc[0]:.4f}" for e in ("ppc", "last", "day"))
+                      + f", **market {R.market_brier.iloc[0]:.4f}**", ""]
+            lines += [R.drop(columns=["model_brier", "market_brier"]).round(3).to_markdown(index=False), ""]
         print(f"{series} done", flush=True)
     text = "\n".join(lines)
     open(os.path.join(a.data, "RESULTS.md"), "w").write(text)
