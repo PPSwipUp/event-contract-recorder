@@ -22,6 +22,6 @@ gh release download data-2026-10-01 -R PPSwipUp/event-contract-recorder
 
 ## How it runs
 
-- `record.yml`: every 5 minutes (GitHub may start scheduled runs late or skip some when busy). Each run
+- `record.yml`: one run records every 5 minutes for about 5.5 hours, then starts the next run; an hourly schedule restarts the chain if it ever breaks. Each pass
   first moves finished days into releases (`compact.sh`) and resets the `data` branch, so the repository
   stays small.

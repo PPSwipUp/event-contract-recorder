@@ -1,20 +1,22 @@
 name: record
-# every 5 minutes: fetch Kalshi / Polymarket / spot prices and commit them to the `data` branch.
-# Each run first packs finished days into releases (compact.sh) and restarts the branch history, so the
-# repository never grows and packing can't be missed if a scheduled run is skipped.
+# One long run records every 5 minutes for ~5.5 hours, then starts the next run itself, so recording no
+# longer depends on GitHub's unreliable scheduler.  The hourly schedule only restarts the chain if it breaks
+# (a queued run waits for the running one: the concurrency group allows one at a time).
+# Each pass: pack finished days into releases (compact.sh), record, commit to the `data` branch.
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "7 * * * *"
   workflow_dispatch:
 permissions:
   contents: write
+  actions: write       # to start the next run
 concurrency:
-  group: data          # one run at a time touches the data branch
+  group: data
   cancel-in-progress: false
 jobs:
   record:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -26,22 +28,28 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -q requests certifi
-      - name: pack finished days into releases
+      - name: record every 5 minutes
         working-directory: store
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          if [ -n "$(../compact.sh)" ]; then
-            git checkout -q --orphan fresh     # drop the packed days from history too
-          fi
-      - run: python recorder.py
-        env:
-          RECORDER_OUT: store
-      - name: commit
-        working-directory: store
+          RECORDER_OUT: .
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -q -m "record $(date -u +%FT%TZ)" || exit 0
-          git push -q -f origin HEAD:data    # safe: runs are serialised by the concurrency group
+          end=$(( $(date +%s) + 330 * 60 ))
+          while [ "$(date +%s)" -lt "$end" ]; do
+            if [ -n "$(../compact.sh)" ]; then
+              git checkout -q --orphan "fresh-$(date +%s)"    # drop packed days from history too
+            fi
+            python ../recorder.py || echo "recorder failed"
+            git add -A
+            if git commit -q -m "record $(date -u +%FT%TZ)"; then
+              git push -q -f origin HEAD:data || echo "push failed"   # safe: one run at a time
+            fi
+            sleep $(( 300 - $(date +%s) % 300 ))                # next 5-minute boundary
+          done
+      - name: start the next run
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run record.yml --ref main
