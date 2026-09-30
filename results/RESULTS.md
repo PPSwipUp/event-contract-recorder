@@ -2,58 +2,58 @@
 
 ## KXBTC
 
-40 hourly events, 7412 brackets, 2026-09-28 to 2026-09-30; vol model trained from 2026-09-20.
+88 hourly events, 16220 brackets, 2026-09-26 to 2026-09-30; vol model trained from 2026-08-01.
 
-Brackets with a live quote 1 h before: 0%. Median spread 2c.
+Brackets with a live quote 1 h before: 100%. Median spread 3c.
 
-Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0226, last 0.0261, day 0.0289, **market 0.0261**
+Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0048, last 0.0048, day 0.0049, **market 0.0586**
 
-| vol   |   margin_c |   order_size |   trades |   cents_per_trade |   se |   return_on_cost |
-|:------|-----------:|-------------:|---------:|------------------:|-----:|-----------------:|
-| ppc   |          2 |            1 |        1 |             54    |  nan |            1.227 |
-| ppc   |          2 |          100 |        1 |             54.27 |  nan |            1.233 |
-| ppc   |          5 |            1 |        0 |            nan    |  nan |          nan     |
-| ppc   |          5 |          100 |        0 |            nan    |  nan |          nan     |
-| ppc   |         10 |            1 |        0 |            nan    |  nan |          nan     |
-| ppc   |         10 |          100 |        0 |            nan    |  nan |          nan     |
-| last  |          2 |            1 |        0 |            nan    |  nan |          nan     |
-| last  |          2 |          100 |        0 |            nan    |  nan |          nan     |
-| last  |          5 |            1 |        0 |            nan    |  nan |          nan     |
-| last  |          5 |          100 |        0 |            nan    |  nan |          nan     |
-| last  |         10 |            1 |        0 |            nan    |  nan |          nan     |
-| last  |         10 |          100 |        0 |            nan    |  nan |          nan     |
-| day   |          2 |            1 |        0 |            nan    |  nan |          nan     |
-| day   |          2 |          100 |        0 |            nan    |  nan |          nan     |
-| day   |          5 |            1 |        0 |            nan    |  nan |          nan     |
-| day   |          5 |          100 |        0 |            nan    |  nan |          nan     |
-| day   |         10 |            1 |        0 |            nan    |  nan |          nan     |
-| day   |         10 |          100 |        0 |            nan    |  nan |          nan     |
+| vol   |   margin_c |   order_size |   trades |   cents_per_trade |    se |   return_on_cost |
+|:------|-----------:|-------------:|---------:|------------------:|------:|-----------------:|
+| ppc   |          2 |            1 |      101 |            33.198 | 2.504 |            0.592 |
+| ppc   |          2 |          100 |      109 |            33.178 | 2.472 |            0.581 |
+| ppc   |          5 |            1 |       84 |            40.774 | 1.801 |            0.759 |
+| ppc   |          5 |          100 |       84 |            41.037 | 1.801 |            0.764 |
+| ppc   |         10 |            1 |       77 |            43.701 | 1.29  |            0.825 |
+| ppc   |         10 |          100 |       77 |            43.951 | 1.29  |            0.829 |
+| last  |          2 |            1 |      112 |            30.339 | 2.607 |            0.548 |
+| last  |          2 |          100 |      123 |            28.149 | 2.685 |            0.49  |
+| last  |          5 |            1 |       87 |            38.402 | 2.199 |            0.728 |
+| last  |          5 |          100 |       87 |            38.679 | 2.194 |            0.733 |
+| last  |         10 |            1 |       79 |            42.165 | 1.653 |            0.81  |
+| last  |         10 |          100 |       79 |            42.41  | 1.655 |            0.815 |
+| day   |          2 |            1 |      166 |            18.819 | 2.501 |            0.39  |
+| day   |          2 |          100 |      197 |            16.165 | 2.352 |            0.306 |
+| day   |          5 |            1 |      112 |            28.67  | 2.731 |            0.644 |
+| day   |          5 |          100 |      114 |            28.582 | 2.693 |            0.63  |
+| day   |         10 |            1 |       85 |            37.918 | 2.277 |            0.765 |
+| day   |         10 |          100 |       85 |            38.197 | 2.269 |            0.771 |
 
 ## KXETH
 
-40 hourly events, 11740 brackets, 2026-09-28 to 2026-09-30; vol model trained from 2026-09-20.
+88 hourly events, 25620 brackets, 2026-09-26 to 2026-09-30; vol model trained from 2026-08-01.
 
-Brackets with a live quote 1 h before: 0%. Median spread 4c.
+Brackets with a live quote 1 h before: 88%. Median spread 1c.
 
-Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0988, last 0.0988, day 0.0935, **market 0.0939**
+Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0033, last 0.0033, day 0.0033, **market 0.0101**
 
-| vol   |   margin_c |   order_size |   trades |   cents_per_trade |   se |   return_on_cost |
-|:------|-----------:|-------------:|---------:|------------------:|-----:|-----------------:|
-| ppc   |          2 |            1 |        0 |               nan |  nan |              nan |
-| ppc   |          2 |          100 |        0 |               nan |  nan |              nan |
-| ppc   |          5 |            1 |        0 |               nan |  nan |              nan |
-| ppc   |          5 |          100 |        0 |               nan |  nan |              nan |
-| ppc   |         10 |            1 |        0 |               nan |  nan |              nan |
-| ppc   |         10 |          100 |        0 |               nan |  nan |              nan |
-| last  |          2 |            1 |        0 |               nan |  nan |              nan |
-| last  |          2 |          100 |        0 |               nan |  nan |              nan |
-| last  |          5 |            1 |        0 |               nan |  nan |              nan |
-| last  |          5 |          100 |        0 |               nan |  nan |              nan |
-| last  |         10 |            1 |        0 |               nan |  nan |              nan |
-| last  |         10 |          100 |        0 |               nan |  nan |              nan |
-| day   |          2 |            1 |        0 |               nan |  nan |              nan |
-| day   |          2 |          100 |        0 |               nan |  nan |              nan |
-| day   |          5 |            1 |        0 |               nan |  nan |              nan |
-| day   |          5 |          100 |        0 |               nan |  nan |              nan |
-| day   |         10 |            1 |        0 |               nan |  nan |              nan |
-| day   |         10 |          100 |        0 |               nan |  nan |              nan |
+| vol   |   margin_c |   order_size |   trades |   cents_per_trade |      se |   return_on_cost |
+|:------|-----------:|-------------:|---------:|------------------:|--------:|-----------------:|
+| ppc   |          2 |            1 |       42 |           -10.571 |   5.357 |           -0.131 |
+| ppc   |          2 |          100 |       59 |            -5.522 |   4.565 |           -0.069 |
+| ppc   |          5 |            1 |       11 |            -7.818 |   9.129 |           -0.099 |
+| ppc   |          5 |          100 |       14 |            -4.379 |   7.329 |           -0.053 |
+| ppc   |         10 |            1 |        1 |           -22     | nan     |           -1.1   |
+| ppc   |         10 |          100 |        1 |           -21.12  | nan     |           -1.056 |
+| last  |          2 |            1 |       55 |           -11.655 |   5.405 |           -0.154 |
+| last  |          2 |          100 |       75 |            -9.285 |   4.454 |           -0.121 |
+| last  |          5 |            1 |       12 |            -8.583 |   6.262 |           -0.131 |
+| last  |          5 |          100 |       18 |            -8.384 |   6.534 |           -0.113 |
+| last  |         10 |            1 |        1 |           -36     | nan     |           -1.059 |
+| last  |         10 |          100 |        2 |           -42.165 |   4.656 |           -1.041 |
+| day   |          2 |            1 |       93 |            -7.634 |   3.004 |           -0.12  |
+| day   |          2 |          100 |      115 |            -4.936 |   2.605 |           -0.074 |
+| day   |          5 |            1 |       32 |           -10.719 |   4.492 |           -0.245 |
+| day   |          5 |          100 |       41 |           -10.259 |   4.216 |           -0.202 |
+| day   |         10 |            1 |        8 |            -5.625 |  11.286 |           -0.338 |
+| day   |         10 |          100 |        8 |            -5.086 |  11.318 |           -0.306 |
