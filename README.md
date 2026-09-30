@@ -22,6 +22,6 @@ gh release download data-2026-10-01 -R PPSwipUp/event-contract-recorder
 
 ## How it runs
 
-- `record.yml`: every 5 minutes (GitHub may start scheduled runs a few minutes late or skip some when busy).
-- `compact.yml`: daily at 00:20 UTC, moves finished days into releases and resets the `data` branch so the
-  repository stays small.
+- `record.yml`: every 5 minutes (GitHub may start scheduled runs late or skip some when busy). Each run
+  first moves finished days into releases (`compact.sh`) and resets the `data` branch, so the repository
+  stays small.

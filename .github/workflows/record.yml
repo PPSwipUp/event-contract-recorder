@@ -1,5 +1,7 @@
 name: record
-# every 5 minutes: fetch Kalshi / Polymarket / spot prices and commit them to the `data` branch
+# every 5 minutes: fetch Kalshi / Polymarket / spot prices and commit them to the `data` branch.
+# Each run first packs finished days into releases (compact.sh) and restarts the branch history, so the
+# repository never grows and packing can't be missed if a scheduled run is skipped.
 on:
   schedule:
     - cron: "*/5 * * * *"
@@ -7,7 +9,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: data          # record and compact never touch the data branch at the same time
+  group: data          # one run at a time touches the data branch
   cancel-in-progress: false
 jobs:
   record:
@@ -24,6 +26,14 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -q requests certifi
+      - name: pack finished days into releases
+        working-directory: store
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -n "$(../compact.sh)" ]; then
+            git checkout -q --orphan fresh     # drop the packed days from history too
+          fi
       - run: python recorder.py
         env:
           RECORDER_OUT: store
@@ -34,4 +44,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -q -m "record $(date -u +%FT%TZ)" || exit 0
-          git push -q
+          git push -q -f origin HEAD:data    # safe: runs are serialised by the concurrency group
