@@ -1,0 +1,18 @@
+name: probe
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          K=https://api.elections.kalshi.com/trade-api/v2
+          for s in KXBTC KXETH KXINX; do
+            curl -s "$K/markets?series_ticker=$s&status=settled&limit=1" | python3 -c "import json,sys;m=json.load(sys.stdin)['markets'][0];print('newest',m['ticker'],m['close_time'],m.get('volume_fp'))"
+            curl -s "$K/markets?series_ticker=$s&status=settled&limit=1&max_close_ts=1700000000" | python3 -c "import json,sys;d=json.load(sys.stdin)['markets'];print('pre-2023-11', [(m['ticker'],m['close_time']) for m in d])"
+            curl -s "$K/markets?series_ticker=$s&status=settled&limit=1&max_close_ts=1735689600" | python3 -c "import json,sys;d=json.load(sys.stdin)['markets'];print('pre-2025', [(m['ticker'],m['close_time'],m.get('volume_fp')) for m in d])"
+          done
+          T=$(curl -s "$K/markets?series_ticker=KXBTC&status=settled&limit=200" | python3 -c "import json,sys;ms=json.load(sys.stdin)['markets'];ms.sort(key=lambda m:-float(m.get('volume_fp') or 0));print(ms[0]['ticker'])")
+          echo "busy market $T"
+          curl -s "$K/markets/trades?ticker=$T&limit=3"; echo
+          curl -s "$K/series/KXBTC/markets/$T/candlesticks?period_interval=1&start_ts=$(( $(date +%s) - 86400 ))&end_ts=$(date +%s)" | head -c 1200; echo
+          curl -s "$K/historical/cutoff"; echo
