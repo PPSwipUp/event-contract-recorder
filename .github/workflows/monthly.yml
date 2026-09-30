@@ -1,0 +1,82 @@
+name: monthly
+# Backtest month by month (each month its own job, so nothing can time out), then combine:
+# month-by-month results, concentration in a few days, and how fast you would have needed to be.
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: monthly
+  cancel-in-progress: true
+jobs:
+  month:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        m:
+          - {start: "2026-01-01", end: "2026-02-01", spot: "2025-07-01"}
+          - {start: "2026-02-01", end: "2026-03-01", spot: "2025-08-01"}
+          - {start: "2026-03-01", end: "2026-04-01", spot: "2025-09-01"}
+          - {start: "2026-04-01", end: "2026-05-01", spot: "2025-10-01"}
+          - {start: "2026-05-01", end: "2026-06-01", spot: "2025-11-01"}
+          - {start: "2026-06-01", end: "2026-07-01", spot: "2025-12-01"}
+          - {start: "2026-07-01", end: "2026-08-01", spot: "2026-01-01"}
+          - {start: "2026-08-01", end: "2026-09-01", spot: "2026-02-01"}
+          - {start: "2026-09-01", end: "2026-10-01", spot: "2026-03-01"}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pandas numpy pyarrow requests tabulate ppc-forecaster
+      - run: python backfill/collect.py --start "${{ matrix.m.start }}" --end "${{ matrix.m.end }}" --spot-start "${{ matrix.m.spot }}" --out out
+      - run: python backfill/backtest.py --data out
+      - run: python fillcheck.py --data ../out
+        working-directory: backfill
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chunk-${{ matrix.m.start }}
+          path: |
+            out/picks_filled.parquet
+            out/RESULTS.md
+  combine:
+    needs: month
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pandas numpy pyarrow tabulate
+      - uses: actions/download-artifact@v4
+        with:
+          path: chunks
+      - name: latency to Kalshi from here
+        run: |
+          H=api.elections.kalshi.com
+          {
+            echo "resolves to: $(getent hosts $H | awk '{print $1}' | tr '\n' ' ')"
+            for i in 1 2 3 4 5; do curl -s -o /dev/null -w "connect %{time_connect}s  tls %{time_appconnect}s  first byte %{time_starttransfer}s\n" https://$H/trade-api/v2/exchange/status; done
+            curl -s https://ip-ranges.amazonaws.com/ip-ranges.json -o aws.json
+            python3 - <<'PY'
+          import ipaddress, json, socket
+          ips = {a[4][0] for a in socket.getaddrinfo("api.elections.kalshi.com", 443, socket.AF_INET)}
+          pre = json.load(open("aws.json"))["prefixes"]
+          for ip in ips:
+              hits = {(p["region"], p["service"]) for p in pre if ipaddress.ip_address(ip) in ipaddress.ip_network(p["ip_prefix"])}
+              print(ip, sorted(hits) or "not in AWS ranges")
+          PY
+          } > latency.txt 2>&1
+          cat latency.txt
+      - run: python backfill/aggregate.py --chunks chunks --out results/MONTHLY.md --latency latency.txt
+      - name: publish
+        run: |
+          cat results/MONTHLY.md >> "$GITHUB_STEP_SUMMARY"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/MONTHLY.md
+          git commit -q -m "monthly backtest results $(date -u +%F)" && git pull -q --rebase && git push -q || true

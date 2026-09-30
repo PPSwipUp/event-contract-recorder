@@ -87,7 +87,7 @@ def one_event(args):
             rows.append({"series": series, "event": ev, "close": close.isoformat(), "ticker": m["ticker"],
                          "floor": m.get("floor_strike"), "cap": m.get("cap_strike"), "strike_type": m.get("strike_type"),
                          "result": m.get("result"), "settle_value": m.get("expiration_value"), "lag_min": lag,
-                         "bid": bid, "ask": ask, "vol_1m": vol, "quote_ts": qts,
+                         "bid": bid, "ask": ask, "vol_1m": vol, "quote_ts": qts, "open_time": m.get("open_time"),
                          "volume_total": m.get("volume_fp") or m.get("volume")})
     return rows
 
@@ -110,10 +110,13 @@ def main():
     ap.add_argument("--start", default="2026-01-01")
     ap.add_argument("--spot-start", default="2025-01-01")
     ap.add_argument("--out", default="backfill/out")
+    ap.add_argument("--end", default="", help="last event day (exclusive), default: now")
     ap.add_argument("--threads", type=int, default=4)
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0) - timedelta(hours=2)
+    if a.end:
+        now = min(now, datetime.fromisoformat(a.end).replace(tzinfo=timezone.utc) - timedelta(hours=1))
     start = datetime.fromisoformat(a.start).replace(tzinfo=timezone.utc)
     hours = pd.date_range(start, now, freq="1h", tz="UTC").to_pydatetime()
     for series, product in SERIES.items():
