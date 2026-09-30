@@ -1,0 +1,47 @@
+name: watcher
+# Run the read-only live watcher for a while on a GitHub runner (Kalshi can't be reached from the hotspot).
+# With the secrets KALSHI_KEY_ID and KALSHI_KEY_PEM set, it connects to Kalshi's WebSocket; without them it only
+# checks that the upcoming markets and their strikes load.
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: how long to watch
+        default: "70"
+permissions:
+  contents: read
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pandas numpy requests websockets cryptography ppc-forecaster
+      - name: run
+        working-directory: live
+        env:
+          KALSHI_KEY_ID: ${{ secrets.KALSHI_KEY_ID }}
+          KALSHI_KEY_PEM: ${{ secrets.KALSHI_KEY_PEM }}
+        run: |
+          if [ -n "$KALSHI_KEY_ID" ]; then
+            umask 077; printf '%s\n' "$KALSHI_KEY_PEM" > key.pem; export KALSHI_KEY_FILE=$PWD/key.pem
+            timeout "$(( ${{ inputs.minutes }} * 60 ))" python watcher.py || true
+          else
+            python - <<'PY'
+          import time, watcher as w
+          x = w.Watcher.__new__(w.Watcher); x.series = "KXBTC"; x.markets = {}
+          n = x.load_upcoming()
+          opens = sorted({m["open_ts"] for m in x.markets.values()})
+          print("upcoming markets with strikes:", n, "; next opens (UTC):",
+                [time.strftime("%H:%M", time.gmtime(t)) for t in opens if t > time.time()][:5])
+          PY
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signals
+          path: live/signals.jsonl
+          if-no-files-found: ignore
