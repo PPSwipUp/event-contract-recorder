@@ -2,11 +2,13 @@
 
 ## KXBTC
 
-88 hourly events, 16220 brackets, 2026-09-26 to 2026-09-30; vol model trained from 2026-08-01.
+89 hourly events, 16408 brackets, 2026-09-26 to 2026-09-30; vol model trained from 2026-08-01.
 
-Brackets with a live quote 1 h before: 100%. Median spread 3c.
+### Quotes 1 min after the market opens
 
-Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0048, last 0.0048, day 0.0049, **market 0.0586**
+Brackets with a real offer: 99%. Median spread 3c.
+
+Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0048, last 0.0048, day 0.0049, **market 0.0562**
 
 | vol   |   margin_c |   order_size |   trades |   cents_per_trade |    se |   return_on_cost |
 |:------|-----------:|-------------:|---------:|------------------:|------:|-----------------:|
@@ -22,20 +24,76 @@ Accuracy of the probabilities (Brier score, lower is better) on quoted brackets:
 | last  |          5 |          100 |       87 |            38.679 | 2.194 |            0.733 |
 | last  |         10 |            1 |       79 |            42.165 | 1.653 |            0.81  |
 | last  |         10 |          100 |       79 |            42.41  | 1.655 |            0.815 |
-| day   |          2 |            1 |      166 |            18.819 | 2.501 |            0.39  |
-| day   |          2 |          100 |      197 |            16.165 | 2.352 |            0.306 |
-| day   |          5 |            1 |      112 |            28.67  | 2.731 |            0.644 |
-| day   |          5 |          100 |      114 |            28.582 | 2.693 |            0.63  |
+| day   |          2 |            1 |      169 |            18.284 | 2.475 |            0.384 |
+| day   |          2 |          100 |      200 |            15.758 | 2.329 |            0.302 |
+| day   |          5 |            1 |      113 |            28.31  | 2.731 |            0.64  |
+| day   |          5 |          100 |      115 |            28.232 | 2.692 |            0.626 |
 | day   |         10 |            1 |       85 |            37.918 | 2.277 |            0.765 |
 | day   |         10 |          100 |       85 |            38.197 | 2.269 |            0.771 |
 
+### Quotes 5 min after the market opens
+
+Brackets with a real offer: 100%. Median spread 1c.
+
+Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0047, last 0.0048, day 0.0048, **market 0.0253**
+
+| vol   |   margin_c |   order_size |   trades |   cents_per_trade |      se |   return_on_cost |
+|:------|-----------:|-------------:|---------:|------------------:|--------:|-----------------:|
+| ppc   |          2 |            1 |       34 |            -6.618 |   5.41  |           -0.176 |
+| ppc   |          2 |          100 |       41 |            -5.167 |   4.532 |           -0.119 |
+| ppc   |          5 |            1 |        6 |            -4.667 |  13.605 |           -0.235 |
+| ppc   |          5 |          100 |        6 |            -4.258 |  13.616 |           -0.215 |
+| ppc   |         10 |            1 |        1 |           -16     | nan     |           -1.067 |
+| ppc   |         10 |          100 |        1 |           -15.9   | nan     |           -1.06  |
+| last  |          2 |            1 |       44 |            -3.432 |   5.471 |           -0.084 |
+| last  |          2 |          100 |       65 |            -2.275 |   4.28  |           -0.045 |
+| last  |          5 |            1 |       10 |            -2.9   |  11.919 |           -0.136 |
+| last  |          5 |          100 |       14 |            -5.973 |   8.87  |           -0.227 |
+| last  |         10 |            1 |        3 |           -19.333 |   2.722 |           -1.074 |
+| last  |         10 |          100 |        4 |           -20.072 |   2.118 |           -1.056 |
+| day   |          2 |            1 |      111 |            -4.892 |   3.165 |           -0.139 |
+| day   |          2 |          100 |      139 |            -2.743 |   2.565 |           -0.062 |
+| day   |          5 |            1 |       40 |            -5.45  |   4.915 |           -0.285 |
+| day   |          5 |          100 |       50 |            -6.356 |   4.065 |           -0.297 |
+| day   |         10 |            1 |       10 |            -8.2   |   9.611 |           -0.488 |
+| day   |         10 |          100 |       13 |           -10.92  |   7.627 |           -0.62  |
+
+### Quotes 15 min after the market opens
+
+Brackets with a real offer: 100%. Median spread 1c.
+
+Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0047, last 0.0047, day 0.0047, **market 0.0079**
+
+| vol   |   margin_c |   order_size |   trades |   cents_per_trade |     se |   return_on_cost |
+|:------|-----------:|-------------:|---------:|------------------:|-------:|-----------------:|
+| ppc   |          2 |            1 |       36 |            -0.667 |  4.983 |           -0.017 |
+| ppc   |          2 |          100 |       49 |            -2.567 |  4.83  |           -0.058 |
+| ppc   |          5 |            1 |        8 |            -3.25  | 12.412 |           -0.222 |
+| ppc   |          5 |          100 |        9 |            -5.352 | 11.267 |           -0.344 |
+| ppc   |         10 |            1 |        2 |           -21     |  2.121 |           -1.077 |
+| ppc   |         10 |          100 |        2 |           -20.6   |  1.846 |           -1.056 |
+| last  |          2 |            1 |       42 |            -7.286 |  5.805 |           -0.165 |
+| last  |          2 |          100 |       59 |            -7.093 |  4.86  |           -0.141 |
+| last  |          5 |            1 |       10 |            -9.9   | 10.521 |           -0.535 |
+| last  |          5 |          100 |       10 |            -9.543 | 10.512 |           -0.516 |
+| last  |         10 |            1 |        3 |           -19.667 |  1.785 |           -1.073 |
+| last  |         10 |          100 |        3 |           -19.383 |  1.581 |           -1.057 |
+| day   |          2 |            1 |      125 |            -3.176 |  3.037 |           -0.07  |
+| day   |          2 |          100 |      149 |            -2.51  |  2.845 |           -0.05  |
+| day   |          5 |            1 |       47 |            -8.872 |  3.886 |           -0.488 |
+| day   |          5 |          100 |       48 |            -6.992 |  4.077 |           -0.377 |
+| day   |         10 |            1 |       12 |           -18.75  |  2.164 |           -1.082 |
+| day   |         10 |          100 |       17 |           -13.061 |  5.772 |           -0.728 |
+
 ## KXETH
 
-88 hourly events, 25620 brackets, 2026-09-26 to 2026-09-30; vol model trained from 2026-08-01.
+89 hourly events, 25920 brackets, 2026-09-26 to 2026-09-30; vol model trained from 2026-08-01.
 
-Brackets with a live quote 1 h before: 88%. Median spread 1c.
+### Quotes 1 min after the market opens
 
-Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0033, last 0.0033, day 0.0033, **market 0.0101**
+Brackets with a real offer: 99%. Median spread 1c.
+
+Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0029, last 0.0029, day 0.0029, **market 0.0110**
 
 | vol   |   margin_c |   order_size |   trades |   cents_per_trade |      se |   return_on_cost |
 |:------|-----------:|-------------:|---------:|------------------:|--------:|-----------------:|
@@ -51,9 +109,63 @@ Accuracy of the probabilities (Brier score, lower is better) on quoted brackets:
 | last  |          5 |          100 |       18 |            -8.384 |   6.534 |           -0.113 |
 | last  |         10 |            1 |        1 |           -36     | nan     |           -1.059 |
 | last  |         10 |          100 |        2 |           -42.165 |   4.656 |           -1.041 |
-| day   |          2 |            1 |       93 |            -7.634 |   3.004 |           -0.12  |
-| day   |          2 |          100 |      115 |            -4.936 |   2.605 |           -0.074 |
-| day   |          5 |            1 |       32 |           -10.719 |   4.492 |           -0.245 |
-| day   |          5 |          100 |       41 |           -10.259 |   4.216 |           -0.202 |
+| day   |          2 |            1 |       96 |            -6.656 |   3.065 |           -0.106 |
+| day   |          2 |          100 |      121 |            -3.997 |   2.587 |           -0.06  |
+| day   |          5 |            1 |       34 |            -8.088 |   5.046 |           -0.192 |
+| day   |          5 |          100 |       43 |            -8.196 |   4.571 |           -0.167 |
 | day   |         10 |            1 |        8 |            -5.625 |  11.286 |           -0.338 |
 | day   |         10 |          100 |        8 |            -5.086 |  11.318 |           -0.306 |
+
+### Quotes 5 min after the market opens
+
+Brackets with a real offer: 99%. Median spread 1c.
+
+Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0029, last 0.0029, day 0.0029, **market 0.0104**
+
+| vol   |   margin_c |   order_size |   trades |   cents_per_trade |      se |   return_on_cost |
+|:------|-----------:|-------------:|---------:|------------------:|--------:|-----------------:|
+| ppc   |          2 |            1 |       28 |            -5.071 |   6.007 |           -0.083 |
+| ppc   |          2 |          100 |       38 |            -4.212 |   5.516 |           -0.066 |
+| ppc   |          5 |            1 |        2 |            21.5   |  40.659 |            0.811 |
+| ppc   |          5 |          100 |        3 |             9.83  |  29.028 |            0.44  |
+| ppc   |         10 |            1 |        1 |            79     | nan     |            4.158 |
+| ppc   |         10 |          100 |        1 |            79.92  | nan     |            4.206 |
+| last  |          2 |            1 |       48 |            -4.479 |   5.658 |           -0.073 |
+| last  |          2 |          100 |       62 |            -5.61  |   4.971 |           -0.089 |
+| last  |          5 |            1 |       10 |             3.3   |  18.074 |            0.074 |
+| last  |          5 |          100 |       12 |            -6.269 |  16.934 |           -0.135 |
+| last  |         10 |            1 |        2 |            21.5   |  40.659 |            0.811 |
+| last  |         10 |          100 |        2 |            22.17  |  40.835 |            0.837 |
+| day   |          2 |            1 |       84 |            -4.81  |   3.213 |           -0.096 |
+| day   |          2 |          100 |      100 |            -2.572 |   2.798 |           -0.046 |
+| day   |          5 |            1 |       27 |           -10.444 |   6.347 |           -0.521 |
+| day   |          5 |          100 |       30 |           -11.612 |   5.787 |           -0.566 |
+| day   |         10 |            1 |        8 |            -6.25  |  11.506 |           -0.362 |
+| day   |         10 |          100 |        9 |            -6.52  |  10.291 |           -0.391 |
+
+### Quotes 15 min after the market opens
+
+Brackets with a real offer: 99%. Median spread 1c.
+
+Accuracy of the probabilities (Brier score, lower is better) on quoted brackets: ppc 0.0029, last 0.0030, day 0.0030, **market 0.0096**
+
+| vol   |   margin_c |   order_size |   trades |   cents_per_trade |      se |   return_on_cost |
+|:------|-----------:|-------------:|---------:|------------------:|--------:|-----------------:|
+| ppc   |          2 |            1 |       22 |             2.545 |   6.536 |            0.043 |
+| ppc   |          2 |          100 |       37 |             0.379 |   5.144 |            0.006 |
+| ppc   |          5 |            1 |        4 |             0.5   |  23.25  |            0.022 |
+| ppc   |          5 |          100 |       10 |            -2.394 |  13.108 |           -0.047 |
+| ppc   |         10 |            1 |        1 |           -25     | nan     |           -1.087 |
+| ppc   |         10 |          100 |        1 |           -24.24  | nan     |           -1.054 |
+| last  |          2 |            1 |       42 |             1.167 |   5.85  |            0.017 |
+| last  |          2 |          100 |       53 |            -0.684 |   5.085 |           -0.01  |
+| last  |          5 |            1 |       14 |             7.357 |  13.4   |            0.181 |
+| last  |          5 |          100 |       15 |             5.237 |  12.78  |            0.131 |
+| last  |         10 |            1 |        2 |            15     |  36.77  |            0.455 |
+| last  |         10 |          100 |        3 |             2.22  |  26.809 |            0.075 |
+| day   |          2 |            1 |       67 |           -12.597 |   3.69  |           -0.26  |
+| day   |          2 |          100 |       84 |           -10.326 |   3.223 |           -0.189 |
+| day   |          5 |            1 |       26 |           -16.154 |   5.852 |           -0.62  |
+| day   |          5 |          100 |       28 |           -15.241 |   5.554 |           -0.537 |
+| day   |         10 |            1 |       10 |           -23.1   |   2.3   |           -1.074 |
+| day   |         10 |          100 |       11 |           -22.326 |   2.068 |           -1.054 |
