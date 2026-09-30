@@ -63,10 +63,11 @@ def one_event(args):
     if not ms:
         return []
     c = int(close.timestamp())
-    d = get(f"{K}/series/{series}/events/{ev}/candlesticks", period_interval=1, start_ts=c - 3660, end_ts=c - 3600)
+    d = get(f"{K}/series/{series}/events/{ev}/candlesticks", period_interval=1, start_ts=c - 3960, end_ts=c - 3600)
     quote = {}
     if d:
         for t, cs in zip(d.get("market_tickers", []), d.get("market_candlesticks", [])):
+            cs = [x for x in cs if x["end_period_ts"] <= c - 3600]      # last minute before the decision
             if cs:
                 q = cs[-1]
                 quote[t] = (q["yes_bid"].get("close_dollars"), q["yes_ask"].get("close_dollars"), q.get("volume_fp"))
@@ -108,7 +109,11 @@ def main():
         t0 = time.time()
         with ThreadPoolExecutor(a.threads) as ex:
             rows = [r for rs in ex.map(one_event, [(series, h) for h in hours]) for r in rs]
-        pd.DataFrame(rows).to_parquet(os.path.join(a.out, f"{series}.parquet"))
+        df = pd.DataFrame(rows)
+        df.to_parquet(os.path.join(a.out, f"{series}.parquet"))
+        if len(df):
+            print(f"{series}: quote found for {df.ask.notna().mean():.0%} of brackets; "
+                  f"bid>0 {pd.to_numeric(df.bid, errors='coerce').gt(0).mean():.0%}", flush=True)
         print(f"{series}: {len(rows)} brackets in {len({r['event'] for r in rows})} events "
               f"({time.time() - t0:.0f}s)", flush=True)
         t0 = time.time()
