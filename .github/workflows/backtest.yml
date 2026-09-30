@@ -10,6 +10,9 @@ on:
       spot_start:
         description: first day of price history for training the volatility model
         default: "2025-01-01"
+      debug:
+        description: event ticker to print debug info for
+        default: ""
 permissions:
   contents: write
 concurrency:
@@ -26,6 +29,8 @@ jobs:
           python-version: "3.12"
       - run: pip install -q pandas numpy pyarrow requests tabulate ppc-forecaster
       - run: python backfill/collect.py --start "${{ inputs.start }}" --spot-start "${{ inputs.spot_start }}" --out out
+        env:
+          DEBUG_ONCE: ${{ inputs.debug }}
       - run: python backfill/backtest.py --data out
       - name: publish
         env:

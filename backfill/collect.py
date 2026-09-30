@@ -65,6 +65,11 @@ def one_event(args):
     c = int(close.timestamp())
     d = get(f"{K}/series/{series}/events/{ev}/candlesticks", period_interval=1, start_ts=c - 3960, end_ts=c - 3600)
     quote = {}
+    if os.environ.get("DEBUG_ONCE") == ev:
+        mc = (d or {}).get("market_candlesticks", [])
+        print("DEBUG", ev, c, "markets", len(ms), ms[0]["ticker"], "candle tickers", len((d or {}).get("market_tickers", [])),
+              (d or {}).get("market_tickers", [""])[:2], "nonempty", sum(1 for x in mc if x),
+              [x["end_period_ts"] for x in next((x for x in mc if x), [])][:8], flush=True)
     if d:
         for t, cs in zip(d.get("market_tickers", []), d.get("market_candlesticks", [])):
             cs = [x for x in cs if x["end_period_ts"] <= c - 3600]      # last minute before the decision
