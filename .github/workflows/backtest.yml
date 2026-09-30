@@ -1,0 +1,43 @@
+name: backtest
+# Collect Kalshi's hourly BTC/ETH range history + Coinbase prices, then backtest the volatility model against
+# the real prices. Results: results/RESULTS.md on main (and this run's summary); raw data as a release.
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        description: first Kalshi event day (UTC)
+        default: "2026-01-01"
+      spot_start:
+        description: first day of price history for training the volatility model
+        default: "2025-01-01"
+permissions:
+  contents: write
+concurrency:
+  group: backtest
+  cancel-in-progress: true
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pandas numpy pyarrow requests tabulate ppc-forecaster
+      - run: python backfill/collect.py --start "${{ inputs.start }}" --spot-start "${{ inputs.spot_start }}" --out out
+      - run: python backfill/backtest.py --data out
+      - name: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat out/RESULTS.md >> "$GITHUB_STEP_SUMMARY"
+          tag="backfill-$(date -u +%F)"
+          tar cf "$tag.tar" -C out .
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --title "$tag" --notes "Kalshi range history + Coinbase prices used by the backtest" --target main
+          gh release upload "$tag" "$tag.tar" --clobber
+          mkdir -p results && cp out/RESULTS.md results/RESULTS.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/RESULTS.md
+          git commit -q -m "backtest results $(date -u +%F)" && git pull -q --rebase && git push -q || true
