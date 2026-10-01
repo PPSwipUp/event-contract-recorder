@@ -1,0 +1,54 @@
+name: survey
+# How much settled history does Kalshi hold for each price-range / above-below series?
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  survey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        group:
+          - "KXBTC BTC KXBTCD BTCD"
+          - "KXETH ETH KXETHD ETHD"
+          - "KXINX INX KXINXU INXU KXINXI INXI"
+          - "KXNASDAQ100 NASDAQ100 KXNASDAQ100U NASDAQ100U NASDAQ100I"
+          - "KXEURUSD EURUSD KXEURUSDH EURUSDH KXUSDJPY USDJPY KXUSDJPYH USDJPYH"
+          - "WTI WTIH KXGOLD GOLD KXSOL KXSOLE"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pandas requests
+      - run: python survey.py ${{ matrix.group }} --out ../survey.csv
+        working-directory: backfill
+      - uses: actions/upload-artifact@v4
+        with:
+          name: survey-${{ strategy.job-index }}
+          path: survey.csv
+  combine:
+    needs: survey
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: parts
+      - run: |
+          pip install -q pandas tabulate
+          python - <<'PY'
+          import glob, pandas as pd
+          S = pd.concat([pd.read_csv(f) for f in glob.glob("parts/*/survey.csv")]).sort_values("contracts_traded", ascending=False)
+          md = "# Kalshi price-market history\n\n" + S.to_markdown(index=False) + "\n"
+          open("results/SURVEY.md", "w").write(md); print(md)
+          PY
+          cat results/SURVEY.md >> "$GITHUB_STEP_SUMMARY"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/SURVEY.md
+          git commit -q -m "survey $(date -u +%F)" && git pull -q --rebase && git push -q || true
