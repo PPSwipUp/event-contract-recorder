@@ -28,8 +28,10 @@ jobs:
         run: |
           if [ -n "${{ inputs.test_day }}" ]; then
             python -c "import forward; print(forward.score_day('${{ inputs.test_day }}'))"
+            python -c "import forward_base as f; print(f.score_day('KXBTC', 'BTC-USD', '${{ inputs.test_day }}'))"
           else
             python forward.py --ledger ../results/forward_ledger.csv --out ../results/FORWARD.md
+            python forward_base.py --ledger ../results/forward_base_ledger.csv --out ../results/FORWARD_BASE.md
           fi
       - name: publish
         if: ${{ inputs.test_day == '' }}
@@ -37,5 +39,5 @@ jobs:
           [ -f results/FORWARD.md ] && cat results/FORWARD.md >> "$GITHUB_STEP_SUMMARY"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add results/forward_ledger.csv results/FORWARD.md 2>/dev/null
+          git add results/forward_ledger.csv results/FORWARD.md results/forward_base_ledger.csv results/FORWARD_BASE.md 2>/dev/null
           git commit -q -m "forward test $(date -u +%F)" && git pull -q --rebase && git push -q || true
