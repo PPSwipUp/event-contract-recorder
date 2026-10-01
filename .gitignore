@@ -1,3 +1,4 @@
 __pycache__/
 data/
 backfill/data_local/
+live/spxscan.jsonl
