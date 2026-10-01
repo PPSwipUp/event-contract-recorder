@@ -157,7 +157,8 @@ def evaluate(a):
         pnl = np.r_[(100 * y - 100 * ask - fee_c(ask, 100))[by], (100 * (1 - y) - 100 * nask - fee_c(nask, 100))[bn]]
         day = np.r_[B.day.values[by], B.day.values[bn]]
         size = np.r_[B.n_yes.values[by], B.n_no.values[bn]]          # contracts in the trade that proves the price
-        configs[(scale, filt, margin)] = pd.DataFrame({"day": day, "pnl_c": pnl, "size": size})
+        cost = np.r_[(100 * ask + fee_c(ask, 100))[by], (100 * nask + fee_c(nask, 100))[bn]]   # cents paid per contract
+        configs[(scale, filt, margin)] = pd.DataFrame({"day": day, "pnl_c": pnl, "size": size, "cost_c": cost})
 
     def summary(name, D):
         d = D.groupby("day").pnl_c.sum()
@@ -188,6 +189,8 @@ def evaluate(a):
     WF = pd.concat(chosen, ignore_index=True) if chosen else pd.DataFrame(columns=["day", "pnl_c"])
     rows.append(summary("walk-forward (re-picks settings daily)", WF))
     R = pd.DataFrame(rows)
+    WF.to_csv(os.path.join(os.path.dirname(a.out) or ".", "wf_bets.csv"), index=False)
+    eq = compounding(WF)
     pc = pd.Series([str(p) for p in picks]).value_counts().head(5)
     L = ["# Jan-Jul 2026 holdout (ETH hourly ranges, real trade prices 10-20 min after open)", "",
          f"{B.event.nunique()} events, {len(B)} brackets that traded near the money. Rules frozen beforehand; "
@@ -201,10 +204,38 @@ def evaluate(a):
                                        ("sweep", configs[("fixed", "shrink50", 2)]),
                                        ("base", configs[("fixed", "none", 5)]),
                                        ("walk-forward", WF))}).round(0).to_markdown(), "",
-         "(dollars at 100 contracts per bet)"]
+         "(dollars at 100 contracts per bet)", "",
+         "## Compounding the self-tuning bot from $1,000", "",
+         "Each bet risks a fixed share of the bankroll at the start of its day. 'capped' = never more contracts than "
+         "actually traded at that price (realistic); 'uncapped' = unlimited liquidity (what the edge alone would do).", "",
+         eq.round(3).to_markdown(index=False)]
     os.makedirs(os.path.dirname(a.out), exist_ok=True)
     open(a.out, "w").write("\n".join(L))
     print("\n".join(L))
+
+
+def compounding(WF, start=1000.0):
+    """daily-compounded equity for several bet sizes; returns CAGR, max drawdown, final bankroll"""
+    rows = []
+    if not len(WF):
+        return pd.DataFrame()
+    days = sorted(WF.day.unique())
+    span = (pd.Timestamp(days[-1]) - pd.Timestamp(days[0])).days + 1
+    for frac, capped in itertools.product((0.01, 0.02, 0.05), (True, False)):
+        bank, peak, mdd, curve = start, start, 0.0, []
+        for d in days:
+            g = WF[WF.day == d]
+            n = (bank * frac * 100) / g.cost_c.values                  # contracts for `frac` of the bankroll
+            if capped:
+                n = np.minimum(n, g["size"].fillna(0).values)
+            bank = max(bank + float((n * g.pnl_c.values).sum() / 100), 0.0)
+            peak = max(peak, bank)
+            mdd = max(mdd, 1 - bank / peak if peak else 0)
+            curve.append(bank)
+        cagr = (bank / start) ** (365 / span) - 1 if bank > 0 else -1.0
+        rows.append({"risk_per_bet": f"{frac:.0%}", "liquidity": "capped" if capped else "uncapped",
+                     "final_$": bank, "CAGR": cagr, "max_drawdown": mdd, "days": span})
+    return pd.DataFrame(rows)
 
 
 def main():
