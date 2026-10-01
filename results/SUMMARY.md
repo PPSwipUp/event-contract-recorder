@@ -50,6 +50,21 @@ Each bet is sized to what other traders actually bought at our price or better a
 **Above/below loses once size is counted** (adverse selection: the bets with lots of volume behind them are the losers).
 Ranges only, compounding from $1,000 at 2% per bet: $3,548 (CAGR 107%, max drawdown 48%).
 
+## Lower-drawdown range bot (chosen on 2024-25, tested once on Jan-Sep 2026; see IMPROVE.md, DIAGNOSE.md)
+
+Rules: only bets with > 12c edge after fees, max 25 contracts (never above what others traded), skip if the trade showing the price was > 200 contracts.
+(The daily stop and "calm hour" filters barely matter.)
+
+| Bot | Holdout profit | Per month | Max drawdown | Sharpe | Months positive |
+|---|---|---|---|---|---|
+| Current (no controls) | $1,398 | $156 | $1,999 | 0.96 | 6/9 |
+| **Lower-drawdown** | $562 | $63 | **$108** | **2.8** | 7/9 |
+
+Reality checks: betting the opposite side loses $1,795 (Sharpe -4.1); +2c slippage still makes money (Sharpe 2.2);
+weekly bootstrap 90% range $204-$910, 0.2% chance of <= $0. Feeding the model a 5-minute-old price kills most of the edge,
+so it needs a fresh spot price. Warning: 2026 Q3 made only $5 - the edge may be fading.
+The model overstates its edge ~3x (actual win rate sits a third of the way from price to model), which is why the 12c margin works.
+
 ## Running automatically (nothing needed from you)
 
 - **Recorder** (`record.yml`): Kalshi + Polymarket + spot prices every 5 minutes, packed into daily releases.
