@@ -46,7 +46,7 @@ jobs:
         working-directory: backfill
         run: |
           if [ "${{ inputs.kind }}" = holdout ]; then
-            [ "${{ matrix.s.series }}" = KXETH ] && python tradebt.py evaluate --chunks ../chunks --out ../new/HOLDOUT_JAN_JUL.md || true
+            if [ "${{ matrix.s.series }}" = KXETH ]; then python tradebt.py evaluate --chunks ../chunks --out ../new/HOLDOUT_JAN_JUL.md; fi
           else
             python db.py evaluate --series ${{ matrix.s.series }} --product ${{ matrix.s.product }} --chunks ../chunks --out ../new/DB_${{ matrix.s.series }}.md
           fi

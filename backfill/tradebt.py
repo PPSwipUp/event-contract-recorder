@@ -189,6 +189,7 @@ def evaluate(a):
     WF = pd.concat(chosen, ignore_index=True) if chosen else pd.DataFrame(columns=["day", "pnl_c"])
     rows.append(summary("walk-forward (re-picks settings daily)", WF))
     R = pd.DataFrame(rows)
+    os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     WF.to_csv(os.path.join(os.path.dirname(a.out) or ".", "wf_bets.csv"), index=False)
     eq = compounding(WF)
     pc = pd.Series([str(p) for p in picks]).value_counts().head(5)
