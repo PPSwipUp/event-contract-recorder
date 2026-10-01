@@ -36,6 +36,20 @@ The median trade proving each price was 5-8 contracts.
 
 The percentages are high only because $1,000 is tiny and 6 months is annualised. The liquidity cap holds dollar profits to ~$1-2k per half-year whatever the bankroll.
 
+## Volume-checked full simulation (Nov 2024 - Sep 2026, 28 Sep excluded; see SIM.md)
+
+Each bet is sized to what other traders actually bought at our price or better after our entry (max 100 contracts).
+
+| Strategy | Bets | Win rate | Total | Per month | Sharpe (ann.) | Max drawdown | Months positive |
+|---|---|---|---|---|---|---|---|
+| **Ranges only, self-tuning** | 8,240 | 57% | **+$3,661** | **+$174** | **1.09** | $2,091 | 15/22 |
+| Ranges only, baseline | 6,229 | 54% | +$3,051 | +$134 | 0.94 | $1,999 | 17/24 |
+| All four, baseline | 19,259 | 62% | -$13,131 | -$575 | -1.62 | $17,131 | 10/24 |
+| Above/below (BTC, ETH) baseline | 13,030 | 65% | -$16,182 | - | -1.6 / -2.6 | - | 7-8/24 |
+
+**Above/below loses once size is counted** (adverse selection: the bets with lots of volume behind them are the losers).
+Ranges only, compounding from $1,000 at 2% per bet: $3,548 (CAGR 107%, max drawdown 48%).
+
 ## Running automatically (nothing needed from you)
 
 - **Recorder** (`record.yml`): Kalshi + Polymarket + spot prices every 5 minutes, packed into daily releases.
@@ -45,7 +59,7 @@ The percentages are high only because $1,000 is tiny and 6 months is annualised.
 
 ## Honest odds
 
-About **30%** that the range edge holds live. Even then, it's worth ~$100-200 a month at realistic sizes unless order books
+About **25-30%** that the range edge holds live (Sharpe ~1, drawdowns about a year of profit). Even then, it's worth ~$100-200 a month at realistic sizes unless order books
 deepen. Don't put money in before the forward tests pass. If they do, the next step is the read-only live watcher on an
 AWS us-east-2 server (needs your Kalshi API key added as a GitHub secret).
 
