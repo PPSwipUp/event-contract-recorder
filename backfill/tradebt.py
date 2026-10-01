@@ -87,13 +87,14 @@ def collect(a):
 
 
 def brackets(T, minute):
-    """one row per bracket: first YES-buy price, first NO-buy price (with their times), last trade price"""
+    """one row per bracket: first YES-buy price, first NO-buy price (with their times), and the market's price as
+    known at the time of our bet: the bracket's FIRST trade in the window (never a later one - that leaks the future)"""
     T = T.copy()
     T["t"] = pd.to_datetime(T.ts, utc=True, format="ISO8601")
     T = T.sort_values("t")
     g = T.groupby("ticker")
     B = g.agg(event=("event", "first"), close=("close", "first"), floor=("floor", "first"), cap=("cap", "first"),
-              result=("result", "first"), mkt=("yes", "last")).reset_index()
+              result=("result", "first"), mkt=("yes", "first")).reset_index()
     fy = T[T.taker == "yes"].groupby("ticker").agg(ask=("yes", "first"), t_yes=("t", "first"))
     fn = T[T.taker == "no"].groupby("ticker").agg(no_ask=("no", "first"), t_no=("t", "first"))
     B = B.join(fy, on="ticker").join(fn, on="ticker")
@@ -103,7 +104,9 @@ def brackets(T, minute):
     B = B[B.result.isin(["yes", "no"])].copy()
     for side, tcol in (("yes", "t_yes"), ("no", "t_no")):
         t = B[tcol]
-        B[f"s0_{side}"] = minute.reindex(t.dt.floor("1min")).values
+        # price at the end of the last COMPLETE minute before the trade (a minute bar's close is its end: using the
+        # trade's own minute would peek up to 60 s ahead)
+        B[f"s0_{side}"] = minute.reindex(t.dt.floor("1min") - pd.Timedelta(minutes=1)).values
         B[f"left_{side}"] = np.sqrt(np.clip((B.close - t).dt.total_seconds().values / 3600, 0.01, 1))
     return B
 
