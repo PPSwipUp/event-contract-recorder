@@ -2,7 +2,7 @@ name: forward
 # Daily forward test of the frozen ETH rule (backfill/forward.py): scores each finished day, keeps a ledger.
 on:
   schedule:
-    - cron: "30 5 * * *"
+    - cron: "30 5,11,17,23 * * *"   # several tries a day: GitHub skips some scheduled runs; days already scored are skipped
   workflow_dispatch:
     inputs:
       test_day:
