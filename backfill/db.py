@@ -132,7 +132,8 @@ def evaluate(a):
         bn = np.isfinite(nask) & np.isfinite(pn) & an & (100 * ((1 - pn) - nask) - fee_c(nask, 100) > margin)
         return pd.DataFrame({"day": np.r_[B.day.values[by], B.day.values[bn]],
                              "pnl_c": np.r_[(100 * y - 100 * ask - fee_c(ask, 100))[by],
-                                            (100 * (1 - y) - 100 * nask - fee_c(nask, 100))[bn]]})
+                                            (100 * (1 - y) - 100 * nask - fee_c(nask, 100))[bn]],
+                             "size": np.r_[B.n_yes.values[by], B.n_no.values[bn]]})
 
     configs = {(s, f, m): run(np.full(len(B), k_fixed) if s == "fixed" else k_roll, f, m)
                for s, f, m in itertools.product(("fixed", "rolling"), ("none", "volview", "shrink50"), (2, 5, 10))}
@@ -151,7 +152,9 @@ def evaluate(a):
     def summ(D):
         d = D.groupby("day").pnl_c.sum()
         t = d.mean() / (d.std(ddof=1) / np.sqrt(len(d))) if len(d) > 2 and d.std() > 0 else np.nan
-        return {"bets": len(D), "c_per_bet": D.pnl_c.mean() if len(D) else np.nan, "dollars_100": D.pnl_c.sum(), "day_t": t}
+        cap = np.minimum(D["size"].fillna(0), 100) if "size" in D else 0
+        return {"bets": len(D), "c_per_bet": D.pnl_c.mean() if len(D) else np.nan, "dollars_100": D.pnl_c.sum(),
+                "dollars_at_traded_size": float((D.pnl_c * cap).sum() / 100), "day_t": t}
     rows = []
     for name, D in rules.items():
         clean = D[~D.day.between("2026-08-01", "2026-09-30")]

@@ -67,8 +67,11 @@ jobs:
           path: res
           merge-multiple: true
       - run: |
+          ls -R res | head
+          git pull -q --rebase
           cp res/*.md results/ 2>/dev/null || true
+          git status --short
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add results/
-          git commit -q -m "rescored ${{ inputs.kind }} $(date -u +%F)" && git pull -q --rebase && git push -q || true
+          git commit -q -m "rescored ${{ inputs.kind }} $(date -u +%F)" && git push -q

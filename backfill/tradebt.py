@@ -95,8 +95,8 @@ def brackets(T, minute):
     g = T.groupby("ticker")
     B = g.agg(event=("event", "first"), close=("close", "first"), floor=("floor", "first"), cap=("cap", "first"),
               result=("result", "first"), mkt=("yes", "first")).reset_index()
-    fy = T[T.taker == "yes"].groupby("ticker").agg(ask=("yes", "first"), t_yes=("t", "first"))
-    fn = T[T.taker == "no"].groupby("ticker").agg(no_ask=("no", "first"), t_no=("t", "first"))
+    fy = T[T.taker == "yes"].groupby("ticker").agg(ask=("yes", "first"), t_yes=("t", "first"), n_yes=("count", "first"))
+    fn = T[T.taker == "no"].groupby("ticker").agg(no_ask=("no", "first"), t_no=("t", "first"), n_no=("count", "first"))
     B = B.join(fy, on="ticker").join(fn, on="ticker")
     B["close"] = pd.to_datetime(B.close, utc=True)
     B["win"] = B.close - pd.Timedelta(hours=1)
@@ -156,14 +156,17 @@ def evaluate(a):
         bn = np.isfinite(nask) & np.isfinite(pn) & an & (100 * ((1 - pn) - nask) - fee_c(nask, 100) > margin)
         pnl = np.r_[(100 * y - 100 * ask - fee_c(ask, 100))[by], (100 * (1 - y) - 100 * nask - fee_c(nask, 100))[bn]]
         day = np.r_[B.day.values[by], B.day.values[bn]]
-        configs[(scale, filt, margin)] = pd.DataFrame({"day": day, "pnl_c": pnl})
+        size = np.r_[B.n_yes.values[by], B.n_no.values[bn]]          # contracts in the trade that proves the price
+        configs[(scale, filt, margin)] = pd.DataFrame({"day": day, "pnl_c": pnl, "size": size})
 
     def summary(name, D):
         d = D.groupby("day").pnl_c.sum()
         t = d.mean() / (d.std(ddof=1) / np.sqrt(len(d))) if len(d) > 2 and d.std() > 0 else np.nan
         months = D.assign(m=D.day.str[:7]).groupby("m").pnl_c.sum()
+        cap = np.minimum(D["size"].fillna(0), 100) if "size" in D else 0
         return {"rule": name, "bets": len(D), "c_per_bet": D.pnl_c.mean() if len(D) else np.nan,
-                "dollars_100": D.pnl_c.sum(), "day_t": t, "days_with_bets": len(d),
+                "dollars_100": D.pnl_c.sum(), "dollars_at_traded_size": float((D.pnl_c * cap).sum() / 100),
+                "median_traded_size": float(D["size"].median()) if len(D) else np.nan, "day_t": t, "days_with_bets": len(d),
                 "months_positive": f"{int((months > 0).sum())}/{len(months)}"}
 
     rows = [summary("forward  (rolling, volview, 5c)", configs[("rolling", "volview", 5)]),
