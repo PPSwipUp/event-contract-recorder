@@ -46,14 +46,14 @@ jobs:
         working-directory: backfill
         run: |
           if [ "${{ inputs.kind }}" = holdout ]; then
-            [ "${{ matrix.s.series }}" = KXETH ] && python tradebt.py evaluate --chunks ../chunks --out ../results/HOLDOUT_JAN_JUL.md || true
+            [ "${{ matrix.s.series }}" = KXETH ] && python tradebt.py evaluate --chunks ../chunks --out ../new/HOLDOUT_JAN_JUL.md || true
           else
-            python db.py evaluate --series ${{ matrix.s.series }} --product ${{ matrix.s.product }} --chunks ../chunks --out ../results/DB_${{ matrix.s.series }}.md
+            python db.py evaluate --series ${{ matrix.s.series }} --product ${{ matrix.s.product }} --chunks ../chunks --out ../new/DB_${{ matrix.s.series }}.md
           fi
       - uses: actions/upload-artifact@v4
         with:
           name: res-${{ matrix.s.series }}
-          path: results/*.md
+          path: new/*.md
           if-no-files-found: ignore
   publish:
     needs: rescore
@@ -71,7 +71,8 @@ jobs:
           git pull -q --rebase
           cp res/*.md results/ 2>/dev/null || true
           git status --short
+          rm -rf res
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add results/
-          git commit -q -m "rescored ${{ inputs.kind }} $(date -u +%F)" && git push -q
+          git commit -q -m "rescored ${{ inputs.kind }} $(date -u +%F)" && git push -q || echo "nothing new"

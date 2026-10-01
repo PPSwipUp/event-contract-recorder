@@ -2,26 +2,26 @@
 
 4075 events, 10492 brackets that traded near the money. Rules frozen beforehand; nothing was tuned on this period. day_t = t-statistic with each day as one observation.
 
-| rule                                   |   bets |   c_per_bet |   dollars_100 |   day_t |   days_with_bets | months_positive   |
-|:---------------------------------------|-------:|------------:|--------------:|--------:|-----------------:|:------------------|
-| forward  (rolling, volview, 5c)        |   1109 |        3.58 |       3967.08 |    2.78 |              205 | 6/7               |
-| sweep    (fixed, shrink50, 2c)         |   3125 |        9.59 |      29957.8  |   10.48 |              211 | 7/7               |
-| base     (fixed, none, 5c)             |   1969 |        6.86 |      13502.9  |    6.92 |              212 | 6/8               |
-| walk-forward (re-picks settings daily) |   2520 |        9.49 |      23905.9  |    9.39 |              181 | 7/7               |
+| rule                                   |   bets |   c_per_bet |   dollars_100 |   dollars_at_traded_size |   median_traded_size |   day_t |   days_with_bets | months_positive   |
+|:---------------------------------------|-------:|------------:|--------------:|-------------------------:|---------------------:|--------:|-----------------:|:------------------|
+| forward  (rolling, volview, 5c)        |    994 |        2.96 |       2940.66 |                   406.22 |                  7.5 |    2.06 |              207 | 6/7               |
+| sweep    (fixed, shrink50, 2c)         |   1664 |        2.56 |       4266.94 |                   932.52 |                  8   |    2.35 |              211 | 6/7               |
+| base     (fixed, none, 5c)             |   1456 |        4.06 |       5908.94 |                   998.57 |                  6   |    3.56 |              210 | 7/7               |
+| walk-forward (re-picks settings daily) |   1899 |        2.86 |       5430.73 |                  1100.12 |                  5   |    2.78 |              177 | 6/8               |
 
-Settings the walk-forward bot picked most often (scale, filter, margin): ('fixed', 'shrink50', np.int64(2)) x104, ('rolling', 'shrink50', np.int64(2)) x42, ('fixed', 'shrink50', np.int64(5)) x23, ('fixed', 'none', np.int64(2)) x6, ('rolling', 'shrink50', np.int64(5)) x4
+Settings the walk-forward bot picked most often (scale, filter, margin): ('fixed', 'none', np.int64(2)) x59, ('rolling', 'none', np.int64(5)) x40, ('fixed', 'none', np.int64(5)) x23, ('rolling', 'none', np.int64(2)) x19, ('rolling', 'shrink50', np.int64(2)) x17
 
 ## Month by month
 
 | m       |   forward |   sweep |   base |   walk-forward |
 |:--------|----------:|--------:|-------:|---------------:|
-| 2026-01 |       335 |    3697 |   1909 |            169 |
-| 2026-02 |      -428 |    2512 |    -63 |           2051 |
-| 2026-03 |      1253 |    9423 |   3610 |           8696 |
-| 2026-04 |       805 |    4426 |   3101 |           4426 |
-| 2026-05 |       827 |    3239 |   1225 |           2946 |
-| 2026-06 |       768 |    2792 |   1530 |           1928 |
-| 2026-07 |       407 |    3868 |   2235 |           3690 |
-| 2026-08 |       nan |     nan |    -43 |            nan |
+| 2026-01 |       560 |    -201 |      9 |           -128 |
+| 2026-02 |      -580 |     449 |    332 |            563 |
+| 2026-03 |       583 |     451 |   1659 |           1006 |
+| 2026-04 |       809 |    1610 |   1979 |           1717 |
+| 2026-05 |      1262 |     807 |   1015 |            946 |
+| 2026-06 |         4 |     598 |    516 |             65 |
+| 2026-07 |       302 |     553 |    398 |           1315 |
+| 2026-08 |       nan |     nan |    nan |            -53 |
 
 (dollars at 100 contracts per bet)
