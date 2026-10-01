@@ -98,6 +98,8 @@ def brackets(T, minute):
     fy = T[T.taker == "yes"].groupby("ticker").agg(ask=("yes", "first"), t_yes=("t", "first"), n_yes=("count", "first"))
     fn = T[T.taker == "no"].groupby("ticker").agg(no_ask=("no", "first"), t_no=("t", "first"), n_no=("count", "first"))
     B = B.join(fy, on="ticker").join(fn, on="ticker")
+    for c in ("floor", "cap"):                       # above/below markets have no cap: None -> NaN
+        B[c] = pd.to_numeric(B[c], errors="coerce")
     B["close"] = pd.to_datetime(B.close, utc=True)
     B["win"] = B.close - pd.Timedelta(hours=1)
     B["y"] = (B.result == "yes").astype(float)
