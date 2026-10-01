@@ -27,7 +27,7 @@ S.headers["User-Agent"] = "research backfill (read-only)"
 
 
 def get(url, **params):
-    for attempt in range(7):
+    for attempt in range(14):                            # ~10 min of back-off before giving up
         try:
             r = S.get(url, params=params, timeout=30)
         except requests.RequestException:

@@ -51,6 +51,13 @@ def collect(a):
     px = pd.Series(spot.c.values, index=pd.to_datetime(spot.ts, unit="s", utc=True)).sort_index()
 
     def one(close):
+        try:
+            return _one(close)
+        except Exception as err:                         # one stubborn event must not lose the whole chunk
+            print(f"skipped {close:%Y-%m-%d %H}: {err}", flush=True)
+            return []
+
+    def _one(close):
         ev = event_ticker(SERIES, close)
         ms = markets_of(SERIES, ev)
         if not ms:

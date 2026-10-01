@@ -1,0 +1,125 @@
+name: database
+# Build the database of Kalshi hourly crypto price markets since 2024 (archived trades) and test the model on it.
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: database
+  cancel-in-progress: true
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        c:
+          - {series: KXBTCD, product: BTC-USD, start: "2024-03-01", end: "2024-06-01"}
+          - {series: KXBTCD, product: BTC-USD, start: "2024-06-01", end: "2024-09-01"}
+          - {series: KXBTCD, product: BTC-USD, start: "2024-09-01", end: "2024-12-01"}
+          - {series: KXBTCD, product: BTC-USD, start: "2024-12-01", end: "2025-03-01"}
+          - {series: KXBTCD, product: BTC-USD, start: "2025-03-01", end: "2025-06-01"}
+          - {series: KXBTCD, product: BTC-USD, start: "2025-06-01", end: "2025-09-01"}
+          - {series: KXBTCD, product: BTC-USD, start: "2025-09-01", end: "2025-12-01"}
+          - {series: KXBTCD, product: BTC-USD, start: "2025-12-01", end: "2026-03-01"}
+          - {series: KXBTCD, product: BTC-USD, start: "2026-03-01", end: "2026-06-01"}
+          - {series: KXBTCD, product: BTC-USD, start: "2026-06-01", end: "2026-09-01"}
+          - {series: KXBTCD, product: BTC-USD, start: "2026-09-01", end: "2026-10-01"}
+          - {series: KXETHD, product: ETH-USD, start: "2024-03-01", end: "2024-06-01"}
+          - {series: KXETHD, product: ETH-USD, start: "2024-06-01", end: "2024-09-01"}
+          - {series: KXETHD, product: ETH-USD, start: "2024-09-01", end: "2024-12-01"}
+          - {series: KXETHD, product: ETH-USD, start: "2024-12-01", end: "2025-03-01"}
+          - {series: KXETHD, product: ETH-USD, start: "2025-03-01", end: "2025-06-01"}
+          - {series: KXETHD, product: ETH-USD, start: "2025-06-01", end: "2025-09-01"}
+          - {series: KXETHD, product: ETH-USD, start: "2025-09-01", end: "2025-12-01"}
+          - {series: KXETHD, product: ETH-USD, start: "2025-12-01", end: "2026-03-01"}
+          - {series: KXETHD, product: ETH-USD, start: "2026-03-01", end: "2026-06-01"}
+          - {series: KXETHD, product: ETH-USD, start: "2026-06-01", end: "2026-09-01"}
+          - {series: KXETHD, product: ETH-USD, start: "2026-09-01", end: "2026-10-01"}
+          - {series: KXBTC, product: BTC-USD, start: "2024-06-01", end: "2024-09-01"}
+          - {series: KXBTC, product: BTC-USD, start: "2024-09-01", end: "2024-12-01"}
+          - {series: KXBTC, product: BTC-USD, start: "2024-12-01", end: "2025-03-01"}
+          - {series: KXBTC, product: BTC-USD, start: "2025-03-01", end: "2025-06-01"}
+          - {series: KXBTC, product: BTC-USD, start: "2025-06-01", end: "2025-09-01"}
+          - {series: KXBTC, product: BTC-USD, start: "2025-09-01", end: "2025-12-01"}
+          - {series: KXBTC, product: BTC-USD, start: "2025-12-01", end: "2026-03-01"}
+          - {series: KXBTC, product: BTC-USD, start: "2026-03-01", end: "2026-06-01"}
+          - {series: KXBTC, product: BTC-USD, start: "2026-06-01", end: "2026-09-01"}
+          - {series: KXBTC, product: BTC-USD, start: "2026-09-01", end: "2026-10-01"}
+          - {series: KXETH, product: ETH-USD, start: "2024-06-01", end: "2024-09-01"}
+          - {series: KXETH, product: ETH-USD, start: "2024-09-01", end: "2024-12-01"}
+          - {series: KXETH, product: ETH-USD, start: "2024-12-01", end: "2025-03-01"}
+          - {series: KXETH, product: ETH-USD, start: "2025-03-01", end: "2025-06-01"}
+          - {series: KXETH, product: ETH-USD, start: "2025-06-01", end: "2025-09-01"}
+          - {series: KXETH, product: ETH-USD, start: "2025-09-01", end: "2025-12-01"}
+          - {series: KXETH, product: ETH-USD, start: "2025-12-01", end: "2026-03-01"}
+          - {series: KXETH, product: ETH-USD, start: "2026-03-01", end: "2026-06-01"}
+          - {series: KXETH, product: ETH-USD, start: "2026-06-01", end: "2026-09-01"}
+          - {series: KXETH, product: ETH-USD, start: "2026-09-01", end: "2026-10-01"}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pandas numpy pyarrow requests tabulate ppc-forecaster
+      - run: python db.py collect --series ${{ matrix.c.series }} --product ${{ matrix.c.product }} --start ${{ matrix.c.start }} --end ${{ matrix.c.end }} --out ../chunk
+        working-directory: backfill
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-${{ matrix.c.series }}-${{ matrix.c.start }}
+          path: chunk/trades.parquet
+  evaluate:
+    needs: collect
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        s:
+          - {series: KXBTCD, product: BTC-USD}
+          - {series: KXETHD, product: ETH-USD}
+          - {series: KXBTC, product: BTC-USD}
+          - {series: KXETH, product: ETH-USD}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pandas numpy pyarrow requests tabulate ppc-forecaster
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: db-${{ matrix.s.series }}-*
+          path: chunks
+      - run: python db.py evaluate --series ${{ matrix.s.series }} --product ${{ matrix.s.product }} --chunks ../chunks --out ../results/DB_${{ matrix.s.series }}.md
+        working-directory: backfill
+      - uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ matrix.s.series }}
+          path: results/DB_${{ matrix.s.series }}.md
+      - name: database release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tar cf "db-${{ matrix.s.series }}.tar" chunks
+          gh release view database >/dev/null 2>&1 || gh release create database --title "Kalshi price-market database" --notes "Archived trades near the money, 10-20 min after each hourly market opened" --target main
+          gh release upload database "db-${{ matrix.s.series }}.tar" --clobber
+  publish:
+    needs: evaluate
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: result-*
+          path: res
+          merge-multiple: true
+      - run: |
+          cp res/*.md results/ && cat results/DB_*.md >> "$GITHUB_STEP_SUMMARY"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/DB_*.md
+          git commit -q -m "database results $(date -u +%F)" && git pull -q --rebase && git push -q || true
