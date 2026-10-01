@@ -89,7 +89,7 @@ def collect(a):
 def brackets(T, minute):
     """one row per bracket: first YES-buy price, first NO-buy price (with their times), last trade price"""
     T = T.copy()
-    T["t"] = pd.to_datetime(T.ts, utc=True)
+    T["t"] = pd.to_datetime(T.ts, utc=True, format="ISO8601")
     T = T.sort_values("t")
     g = T.groupby("ticker")
     B = g.agg(event=("event", "first"), close=("close", "first"), floor=("floor", "first"), cap=("cap", "first"),

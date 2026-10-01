@@ -156,7 +156,7 @@ def evaluate(a):
     for name, D in rules.items():
         clean = D[~D.day.between("2026-08-01", "2026-09-30")]
         rows.append({"rule": name, **summ(D), **{f"excl_AugSep26_{k}": v for k, v in summ(clean).items()}})
-    by_year = pd.DataFrame({name: D.assign(y=D.day.str[:4]).groupby("y").pnl_c.sum() / 100
+    by_year = pd.DataFrame({name: D.assign(y=D.day.str[:4]).groupby("y").pnl_c.sum()  # cents per contract x 100 contracts = dollars
                             for name, D in rules.items()})
     L += ["## 2. Betting rules (real traded prices, Kalshi fees, 100 contracts per bet)", "",
           pd.DataFrame(rows).round(2).to_markdown(index=False), "",
