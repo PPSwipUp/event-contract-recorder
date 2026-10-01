@@ -25,3 +25,16 @@ Settings the walk-forward bot picked most often (scale, filter, margin): ('fixed
 | 2026-08 |       nan |     nan |    nan |            -53 |
 
 (dollars at 100 contracts per bet)
+
+## Compounding the self-tuning bot from $1,000
+
+Each bet risks a fixed share of the bankroll at the start of its day. 'capped' = never more contracts than actually traded at that price (realistic); 'uncapped' = unlimited liquidity (what the edge alone would do).
+
+| risk_per_bet   | liquidity   |   final_$ |    CAGR |   max_drawdown |   days |
+|:---------------|:------------|----------:|--------:|---------------:|-------:|
+| 1%             | capped      |   1168.7  |   0.365 |          0.118 |    183 |
+| 1%             | uncapped    |   3217.28 |   9.285 |          0.199 |    183 |
+| 2%             | capped      |   1602.92 |   1.563 |          0.137 |    183 |
+| 2%             | uncapped    |   7551.44 |  55.398 |          0.378 |    183 |
+| 5%             | capped      |   2179.9  |   3.732 |          0.287 |    183 |
+| 5%             | uncapped    |  14141.2  | 196.101 |          0.805 |    183 |
