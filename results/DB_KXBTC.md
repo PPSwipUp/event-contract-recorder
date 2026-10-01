@@ -6,25 +6,25 @@
 
 |   year |   markets |   model_logloss |   market_logloss |   model_brier |   market_brier | more_accurate   |
 |-------:|----------:|----------------:|-----------------:|--------------:|---------------:|:----------------|
-|   2024 |       739 |          0.4059 |           0.4279 |        0.1273 |         0.1322 | model           |
-|   2025 |     20657 |          0.4251 |           0.4337 |        0.1342 |         0.1371 | model           |
-|   2026 |     38441 |          0.3548 |           0.3566 |        0.1069 |         0.1074 | model           |
+|   2024 |       739 |          0.4099 |           0.4279 |        0.128  |         0.1322 | model           |
+|   2025 |     20657 |          0.4268 |           0.4337 |        0.1345 |         0.1371 | model           |
+|   2026 |     38441 |          0.3571 |           0.3566 |        0.1074 |         0.1074 | market          |
 
-Averaging the two (half model, half market): log loss 0.3789 vs market 0.3841 - if lower, the model adds information the market lacks.
+Averaging the two (half model, half market): log loss 0.3800 vs market 0.3841 - if lower, the model adds information the market lacks.
 
 ## 2. Betting rules (real traded prices, Kalshi fees, 100 contracts per bet)
 
-| rule                           |   bets |   c_per_bet |   dollars_100 |   day_t |   excl_AugSep26_bets |   excl_AugSep26_c_per_bet |   excl_AugSep26_dollars_100 |   excl_AugSep26_day_t |
-|:-------------------------------|-------:|------------:|--------------:|--------:|---------------------:|--------------------------:|----------------------------:|----------------------:|
-| forward (rolling, volview, 5c) |   2532 |        1.39 |       3516.01 |    1.53 |                 2248 |                      2.04 |                     4581.24 |                  2.14 |
-| sweep (fixed, shrink50, 2c)    |  12447 |        5.78 |      71984.4  |   14.45 |                10564 |                      5.8  |                    61321.7  |                 13.56 |
-| base (fixed, none, 5c)         |   4849 |        3.95 |      19172.4  |    6.11 |                 4249 |                      4.41 |                    18741.9  |                  6.35 |
-| walk-forward self-tuning       |  12324 |        5.51 |      67879.8  |   13.78 |                10419 |                      5.51 |                    57458.4  |                 12.88 |
+| rule                           |   bets |   c_per_bet |   dollars_100 |   dollars_at_traded_size |   day_t |   excl_AugSep26_bets |   excl_AugSep26_c_per_bet |   excl_AugSep26_dollars_100 |   excl_AugSep26_dollars_at_traded_size |   excl_AugSep26_day_t |
+|:-------------------------------|-------:|------------:|--------------:|-------------------------:|--------:|---------------------:|--------------------------:|----------------------------:|---------------------------------------:|----------------------:|
+| forward (rolling, volview, 5c) |   2288 |        2.74 |       6264.13 |                  2162.71 |    2.91 |                 2062 |                      2.91 |                     5993.84 |                                1723.19 |                  2.97 |
+| sweep (fixed, shrink50, 2c)    |   4570 |        1.76 |       8025.91 |                  3482.93 |    2.94 |                 4016 |                      2.15 |                     8639.49 |                                3073.82 |                  3.41 |
+| base (fixed, none, 5c)         |   3546 |        2.67 |       9461.5  |                  2864.98 |    3.74 |                 3200 |                      3.15 |                    10088.5  |                                2677.59 |                  4.18 |
+| walk-forward self-tuning       |   6995 |        1.26 |       8801.36 |                  2351.34 |    2.7  |                 6872 |                      1.24 |                     8494.48 |                                2283.99 |                  2.64 |
 
 Dollars by year (100 contracts per bet):
 
 |    y |   forward (rolling, volview, 5c) |   sweep (fixed, shrink50, 2c) |   base (fixed, none, 5c) |   walk-forward self-tuning |
 |-----:|---------------------------------:|------------------------------:|-------------------------:|---------------------------:|
-| 2024 |                              -46 |                           743 |                      464 |                        nan |
-| 2025 |                             3458 |                         23016 |                    10992 |                      20534 |
-| 2026 |                              104 |                         48225 |                     7716 |                      47345 |
+| 2024 |                               94 |                           556 |                      507 |                        nan |
+| 2025 |                             4439 |                          6550 |                     5502 |                       4242 |
+| 2026 |                             1730 |                           920 |                     3453 |                       4559 |
