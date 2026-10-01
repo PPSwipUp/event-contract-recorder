@@ -1,0 +1,34 @@
+name: research
+# Test pre-declared fixes on the Aug-Sep backfill (release backfill-2026-09-30): choose on August, test on September.
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        default: backfill-2026-09-30
+permissions:
+  contents: write
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pandas numpy pyarrow requests tabulate ppc-forecaster
+      - name: data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ inputs.release }}" -D rel
+          mkdir out && tar xf rel/*.tar -C out && ls -la out
+      - run: python research.py --data ../out --out ../results/RESEARCH.md
+        working-directory: backfill
+      - name: publish
+        run: |
+          cat results/RESEARCH.md >> "$GITHUB_STEP_SUMMARY"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/RESEARCH.md
+          git commit -q -m "research results $(date -u +%F)" && git pull -q --rebase && git push -q || true
