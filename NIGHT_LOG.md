@@ -37,6 +37,11 @@
   picked on Jan-Apr (+$147/mo, t 1.65, only 2/4 months +) -> holdout May-Sep -$47/mo (cap 100), -$301/mo (cap 500).
   No edge. Line E closed (results/TOUCH.md).
 
+- 15:xx (B) RESULT KXBTC15M: market more accurate (Brier 0.1496 vs model 0.1541). Aug: every margin loses
+  (8c: -$2.2k, t -1.6); Sep holdout +$2.2k but t 1.29 and opposite sign to Aug -> noise. Spot is SAME-INSTANT as the
+  quote (docstring corrected - it said 1 min stale), so even zero-latency at minute resolution gives no reliable edge.
+  Placebo 5 min stale: -$10.7k (market follows spot fast). Line B (BTC) closed; ETH run still going.
+
 ## Decisions
 - DECISION: "edge larger in profits" = more $/month after volume caps than the existing bot. Revert: n/a.
 - DECISION: test candidates in order of closeness to the proven edge: (A) alt-coin hourly ranges, (B) 15-min crypto

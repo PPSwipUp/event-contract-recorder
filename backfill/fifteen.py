@@ -2,7 +2,7 @@
 
 Each market: YES if the index's 60-s average before the close >= the 60-s average before the open (the strike).
 At each minute inside the window: model P(up) = 1 - F((ln strike - ln S) / (k * sigma_hour * sqrt(min_left/60))),
-S = Coinbase close of the minute BEFORE the quote minute (one minute stale on purpose), sigma_hour = PPC forecast.
+S = Coinbase close at the end of the same minute as the quote (bar starting 1 min before), sigma_hour = PPC forecast.
 Quotes = Kalshi 1-minute candle close bid/ask (exist from ~Aug 2026).  Buy YES at the ask / NO at 1-bid when the
 model edge after Kalshi fees beats the margin; 100 contracts (these books trade ~100k contracts a minute).
 Pre-declared: margin picked on AUGUST, run once on SEPTEMBER.  Placebo: spot 5 minutes staler.
@@ -86,7 +86,7 @@ def main():
     sig_h = S.ppc.reindex(Q.t.dt.floor("1h")).values
 
     def evaluate(stale):
-        s0 = minute.reindex(Q.t - pd.Timedelta(minutes=1 + stale)).values        # log price, minute ending 1 min before
+        s0 = minute.reindex(Q.t - pd.Timedelta(minutes=1 + stale)).values        # log price at the quote time (bar ending at t)
         sig = k * sig_h * np.sqrt(Q.min_left.values / 60)
         x = (np.log(Q.strike.values) - s0) / sig
         p = 1 - np.searchsorted(z, np.nan_to_num(x)) / len(z)
