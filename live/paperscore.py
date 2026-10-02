@@ -23,6 +23,10 @@ if __name__ == "__main__":
     F["fee_c"] = [math.ceil(1.75 * n * p * (1 - p)) / n for p, n in zip(F.our_px, F.n.clip(lower=1))]
     F["won"] = (F.we_hold == F.result).astype(float)
     F["pnl_$"] = (100 * F.won - 100 * F.our_px - F.fee_c) * F.n / 100
+    if "n_big" in F:                                          # same fills with a 100-contract cap
+        F["n_big"] = F.n_big.fillna(F.n)
+        F["pnl_big_$"] = (100 * F.won - 100 * F.our_px - F.fee_c) * F.n_big / 100
+        print(f"100-contract cap: contracts {F.n_big.sum():.0f}, pnl ${F['pnl_big_$'].sum():.2f}")
     F["model_edge_c"] = [100 * ((p if h == "yes" else 1 - p) - o) for p, h, o in zip(F.p_yes, F.we_hold, F.our_px)]
     F["tested_window"] = F.mins_in.between(10, 21)
     F["hour"] = F.t.str[:13]

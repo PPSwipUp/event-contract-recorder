@@ -30,6 +30,7 @@ K = "https://api.elections.kalshi.com/trade-api/v2"
 MON = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 SERIES = {"KXBTC": "BTC-USD", "KXETH": "ETH-USD"}
 MARGIN, SIZE, NEAR, MAXM = 8.0, 25, 0.03, 10
+BIG = 100                                                     # also track what a 100-contract cap would have filled
 HERE = os.path.dirname(os.path.abspath(__file__))
 S = requests.Session()
 
@@ -67,7 +68,7 @@ def main():
     models = {s: VolModel(p) for s, p in SERIES.items()}
     print("models ready", flush=True)
     stop = time.time() + 3600 * a.hours
-    hour, markets, quotes, left = None, {}, {}, {}
+    hour, markets, quotes, left, left_big = None, {}, {}, {}, {}
     last_trade = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     fills = 0
     while time.time() < stop:
@@ -78,7 +79,7 @@ def main():
                 if hour is not None:
                     for m in models.values():
                         m.roll()
-                hour, quotes, left = close, {}, {}
+                hour, quotes, left, left_big = close, {}, {}, {}
                 markets = {s: kget("/markets", event_ticker=event(s, close), limit=1000).get("markets", []) for s in SERIES}
             secs = (close - now).total_seconds()
             mins_in = 60 - secs / 60
@@ -105,12 +106,15 @@ def main():
                         continue
                     hit = (t["taker_side"] == "yes" and y >= q["px"]) if side == "sell_yes" else (t["taker_side"] == "no" and y <= q["px"])
                     rem = left.get((t["ticker"], side), SIZE)
-                    if hit and rem > 0:
+                    rem_big = left_big.get((t["ticker"], side), BIG)
+                    if hit and rem_big > 0:
                         n = min(rem, float(t["count_fp"]))
+                        n_big = min(rem_big, float(t["count_fp"]))
                         left[(t["ticker"], side)] = rem - n
+                        left_big[(t["ticker"], side)] = rem_big - n_big
                         fills += 1
                         rec = {"t": t["created_time"], "ticker": t["ticker"], "we_hold": "no" if side == "sell_yes" else "yes",
-                               "yes_px": q["px"], "n": n, "p_yes": q["p"], "mins_in": round(q["mins_in"], 1), "taker_px": y}
+                               "yes_px": q["px"], "n": n, "n_big": n_big, "p_yes": q["p"], "mins_in": round(q["mins_in"], 1), "taker_px": y}
                         with open(a.out, "a") as f:
                             f.write(json.dumps(rec) + "\n")
             # 2) refresh quotes from the live books and the model
