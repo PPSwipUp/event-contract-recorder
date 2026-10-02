@@ -28,6 +28,8 @@ def main():
     ap.add_argument("--end", default="2026-10-01")
     ap.add_argument("--every", type=int, default=2)
     ap.add_argument("--maxm", type=int, default=10)
+    ap.add_argument("--offset", type=int, default=0, help="1 = the other half of the hours (even UTC closes)")
+    ap.add_argument("--even-weeks-only", action="store_true")
     a = ap.parse_args()
     start = datetime.fromisoformat(a.start).replace(tzinfo=timezone.utc)
     end = datetime.fromisoformat(a.end).replace(tzinfo=timezone.utc)
@@ -64,10 +66,12 @@ def main():
             print("skipped", close, repr(err)[:100], flush=True)
             return [], [], []
 
-    hours = list(pd.date_range(start + timedelta(hours=1), end, freq="1h", tz="UTC").to_pydatetime())[::a.every]
+    hours = list(pd.date_range(start + timedelta(hours=1), end, freq="1h", tz="UTC").to_pydatetime())[a.offset::a.every]
+    if a.even_weeks_only:
+        hours = [h for h in hours if int(h.strftime("%V")) % 2 == 0]
     weeks = sorted({h.strftime("%G-W%V") for h in hours})
     for w in weeks:
-        path = os.path.join(OUT, f"{a.series}_{w}.parquet")
+        path = os.path.join(OUT, f"{a.series}_{w}{'e' if a.offset else ''}.parquet")
         if os.path.exists(path.replace(".parquet", "_trades.parquet")):
             continue
         hs = [h for h in hours if h.strftime("%G-W%V") == w]

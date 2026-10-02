@@ -76,6 +76,17 @@
   (Aug-Sep, every 2nd hour, BTC+ETH ranges) collecting.
 - DECISION (pre-registered before sim data seen): secondary variant "quote only minutes 0-35", from KXBTCD Jan-Mar.
 
+- 19:xx paused full-hour KXBTC collection after Apr (resumable: rerun same fullhour.py command) to give simdata the
+  Kalshi rate limit. Adversarial review workflow on simmaker.py running (5 lenses + 2 refuters each).
+
+- 20:xx adversarial review of simmaker.py (43 agents): 15 confirmed findings (results/SIM_MAKER_REVIEW.txt). Fixed:
+  tz crash; fills when OTHER traders' orders cross our stale quote (taker prints through + next-minute book cross,
+  CROSS_FILL 0.5/1.0); pick-off of whole order when prints go >=3c through; per clock hour (BTC+ETH same close counted
+  once); capital by close; days from data; max_dd from $0; day_t on all days; ex-best-day / ex-28Sep / top-5-hour
+  share / weekly-bootstrap CI; paired same-day tests vs no-model and placebo; non-independence note; UTC-hour table.
+  Sampling bias (odd UTC hours only) -> simdata --offset 1 --even-weeks-only pass chained after current download.
+  Synthetic unit test passes (latency gate, first-in-queue fill, next-minute cross pick-off, fee rounding).
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
