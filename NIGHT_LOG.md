@@ -87,6 +87,11 @@
   Sampling bias (odd UTC hours only) -> simdata --offset 1 --even-weeks-only pass chained after current download.
   Synthetic unit test passes (latency gate, first-in-queue fill, next-minute cross pick-off, fee rounding).
 
+- 20:xx SIM RESULT (partial, Aug 1-Sep 20, 598 clock hours): market making LOSES in every scenario: base -3.9c/contract,
+  -$18.6k/mo if every hour, day t -11.7; no-model -1.6c; placebo -3.2c; model worse than no-model (paired t -4.7);
+  every minute bucket negative incl. 10-20 (-3.1c). 0-35 min variant -2.8c. Suspect: 60-s refresh -> stale pick-offs.
+  Running simdiag.py to split losses by fill rule and compare with the old naive fill rule.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
