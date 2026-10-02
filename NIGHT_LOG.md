@@ -66,6 +66,16 @@
 - 18:xx BTC/ETH split of the $1,740/mo (1c better, full fill, max 25): BTC $1,505/mo t 3.7 (May $5.5k; ex-May ~$1.0k),
   ETH $235/mo t 1.3. Paper run: 7 ETH fills in first 20 min, all selling YES into rising prices; scoring at 16:10 UTC.
 
+- 18:xx user asked to scale #1. Started full-hour trade collection (fullhour.py): KXBTC 2026 every 4th hour, 10 mkts;
+  KXBTCD (above/below) 2026 every 8th hour, 6 mkts. Will run maker.py logic with the FROZEN 8c margin (pure OOS).
+
+- 19:xx KXBTCD maker interim (Jan-Mar, every 8th hour): ~0 at 25% fill, -1.1c at 1c-better -> no edge overall.
+  By minute: 10-30 min +2.4..+3.7c, 40-60 min -2.3..-3.1c (informed flow near settlement).
+- 19:xx user asked for a realistic market-impact simulator. Built simmaker.py (event-driven replay of real tape +
+  1-min book, our orders inserted, latency, queue/competition prob, caps, maker fees, settlement). Data: simdata.py
+  (Aug-Sep, every 2nd hour, BTC+ETH ranges) collecting.
+- DECISION (pre-registered before sim data seen): secondary variant "quote only minutes 0-35", from KXBTCD Jan-Mar.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
