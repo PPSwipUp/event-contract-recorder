@@ -7,8 +7,8 @@
 - In progress: alt-coin hourly ranges (SOL, XRP, DOGE).
 
 ## Needs human
-- Market-making edge passed backtest fake-checks (~$1-3.5k/mo, Sharpe ~4-5 on 2026 holdout). It is NOT proven live:
-  a 48 h read-only paper run is going (live/papermaker.py, laptop must stay awake). Do not trade on it yet.
+- Market-making edge FAILED the realistic simulation (all scenarios lose; root cause = print-price fill assumption in
+  maker.py). Do NOT trade it. Paper run (live/papermaker.py) also negative so far.
 
 ## Timeline
 - 10:xx survey: Kalshi alt-coin hourly ranges exist only since Jul 2026 and are thin (median contracts/event:
@@ -91,6 +91,14 @@
   -$18.6k/mo if every hour, day t -11.7; no-model -1.6c; placebo -3.2c; model worse than no-model (paired t -4.7);
   every minute bucket negative incl. 10-20 (-3.1c). 0-35 min variant -2.8c. Suspect: 60-s refresh -> stale pick-offs.
   Running simdiag.py to split losses by fill rule and compare with the old naive fill rule.
+
+- 21:xx LOSS DECOMPOSITION (simdiag): even the NAIVE fill rule (only same-side takers, print-sized, no pick-offs)
+  loses -4.9c/contract (all minutes) and -4.1c (min 10-20) in the sim, vs +4.5c in maker.py on the same period.
+  Root cause: maker.py filled us at the taker's PRINT price; the overpaying prints are mostly sweeps through thin
+  books, and you only get that price if you were already resting at that exact level. Quoting at the touch (or
+  joining at model+8c) captures the adverse part without the windfall. Paper run agrees: -$14.37 after 2 hours.
+  VERDICT: market-making lead is an artifact -> DEAD (no-model quoting also loses -1.6c, so books are defended).
+  Full-data sim chained (data_local/final_sim.sh) for the record.
 
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
