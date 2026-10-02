@@ -7,7 +7,8 @@
 - In progress: alt-coin hourly ranges (SOL, XRP, DOGE).
 
 ## Needs human
-(none yet)
+- Market-making edge passed backtest fake-checks (~$1-3.5k/mo, Sharpe ~4-5 on 2026 holdout). It is NOT proven live:
+  a 48 h read-only paper run is going (live/papermaker.py, laptop must stay awake). Do not trade on it yet.
 
 ## Timeline
 - 10:xx survey: Kalshi alt-coin hourly ranges exist only since Jul 2026 and are thin (median contracts/event:
@@ -49,6 +50,13 @@
 - 16:xx (F) RESULT (unverified, too good): holdout 2026 $1.0k-2.8k/mo, Sharpe ~4.7-4.9, 8/9 months, margin 8c chosen
   on 2024-25 (train 14/14 months). Placebo join-taker -8.8c. Running fake-checks (makercheck.py): no-model, random,
   5-min stale spot, fill 10%, breakdowns. DO NOT trust until these pass.
+
+- 17:xx (F) FAKE-CHECKS (results/MAKER_CHECKS.md): model 4.5c/contract t 4.05 vs no-model 0.4c (t 1.75), random
+  0.6c; 5-min-stale spot 2.8c (t 4.06, edge mostly vol pricing not speed); fill 10% still $530/mo t 3.97; both
+  coins +, all trade sizes +, 8/9 months +. Queue-first variant (post 1c better, full fill, max 25): $1,740/mo t 3.9;
+  2c better: $1,341/mo. PASSES backtest checks. Real-world risk = competing makers / queue -> needs live paper test.
+- 17:xx started live/papermaker.py (48 h, read-only): quotes 1c inside the live book when model edge > maker fee+8c,
+  fills only from real taker trades >1 s after quote. Score with live/paperscore.py.
 
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
