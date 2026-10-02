@@ -61,6 +61,11 @@
 - 17:xx (B) KXETH15M RESULT: no edge (Aug all margins lose; Sep -$1.9k). Line B closed.
 - 17:xx running maker OOS check on SOL/XRP ranges (frozen 8c margin).
 
+- 18:xx maker OOS on SOL/XRP (frozen 8c): model fills +6.3c / +4.8c per contract (no-model +1.7c / -0.4c), but
+  small $ ($276 / $198 over ~4 months) and weak t (1.25 / 0.86). Same sign = mild support. results/MAKER_ALT.md.
+- 18:xx BTC/ETH split of the $1,740/mo (1c better, full fill, max 25): BTC $1,505/mo t 3.7 (May $5.5k; ex-May ~$1.0k),
+  ETH $235/mo t 1.3. Paper run: 7 ETH fills in first 20 min, all selling YES into rising prices; scoring at 16:10 UTC.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
