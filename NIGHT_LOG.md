@@ -42,7 +42,17 @@
   quote (docstring corrected - it said 1 min stale), so even zero-latency at minute resolution gives no reliable edge.
   Placebo 5 min stale: -$10.7k (market follows spot fast). Line B (BTC) closed; ETH run still going.
 
+- 15:xx (F) started market-making test (maker.py): sell to takers who overpay per the frozen model, on all
+  database trades (BTC+ETH ranges, 10-20 min after open). 25%/50% fill of each trade, maker fee charged, margin on
+  2024-25, holdout 2026. Placebo: join the taker instead.
+
+- 16:xx (F) RESULT (unverified, too good): holdout 2026 $1.0k-2.8k/mo, Sharpe ~4.7-4.9, 8/9 months, margin 8c chosen
+  on 2024-25 (train 14/14 months). Placebo join-taker -8.8c. Running fake-checks (makercheck.py): no-model, random,
+  5-min stale spot, fill 10%, breakdowns. DO NOT trust until these pass.
+
 ## Decisions
+- DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
+  unknown. Revert: change FILL in maker.py.
 - DECISION: "edge larger in profits" = more $/month after volume caps than the existing bot. Revert: n/a.
 - DECISION: test candidates in order of closeness to the proven edge: (A) alt-coin hourly ranges, (B) 15-min crypto
   up/down (latency / stale price), (C) Polymarket crypto up/down, (D) FX hourly ranges. Stop a line when it fails.
