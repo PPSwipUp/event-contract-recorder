@@ -58,6 +58,9 @@
 - 17:xx started live/papermaker.py (48 h, read-only): quotes 1c inside the live book when model edge > maker fee+8c,
   fills only from real taker trades >1 s after quote. Score with live/paperscore.py.
 
+- 17:xx (B) KXETH15M RESULT: no edge (Aug all margins lose; Sep -$1.9k). Line B closed.
+- 17:xx running maker OOS check on SOL/XRP ranges (frozen 8c margin).
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.

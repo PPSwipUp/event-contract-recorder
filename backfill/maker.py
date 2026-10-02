@@ -32,8 +32,8 @@ def maker_fee_c(p, n):
     return np.ceil(1.75 * n * p * (1 - p)) / n
 
 
-def series_trades(series, product):
-    T = pd.concat([pd.read_parquet(f) for f in sorted(glob.glob(f"data_local/chunks/db-{series}-*/trades.parquet"))],
+def series_trades(series, product, chunks="data_local/chunks"):
+    T = pd.concat([pd.read_parquet(f) for f in sorted(glob.glob(f"{chunks}/db-{series}-*/trades.parquet"))],
                   ignore_index=True)
     T["t"] = pd.to_datetime(T.ts, utc=True, format="ISO8601")
     T["close"] = pd.to_datetime(T.close, utc=True)
