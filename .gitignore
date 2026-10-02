@@ -2,3 +2,4 @@ __pycache__/
 data/
 backfill/data_local/
 live/spxscan.jsonl
+live/arbscan.jsonl
