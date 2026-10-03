@@ -26,7 +26,6 @@ import pandas as pd
 from backtest import fee_c
 from collect import K, event_ticker, get, markets_of
 
-PAIRS = {"KXBTC": "KXBTCD", "KXETH": "KXETHD"}
 N = 100                                                  # contracts per leg, for the fee rounding
 
 
@@ -65,14 +64,20 @@ def one_hour(args):
         return []
     Qr, grid = candles(rng, er, ts)
     Qa, _ = candles(ab, ea, ts)
-    above = {round(float(m["floor_strike"]), 2): m["ticker"] for m in ma if m.get("floor_strike") is not None}
+    strikes = sorted((float(m["floor_strike"]), m["ticker"]) for m in ma if m.get("floor_strike") is not None)
+
+    def above_at(x, below):
+        """above/below market just under x (below=True) or at x; strikes sit one tick (0.01 or 0.0001) off the edges"""
+        tol = 2e-4 * x
+        c = [(k, t) for k, t in strikes if (x - tol <= k < x if below else abs(k - x) <= tol)]
+        return max(c)[1] if c else None
     rows = []
     # bracket legs
     for m in mr:
         lo, hi = m.get("floor_strike"), m.get("cap_strike")
         if lo is None or hi is None or m["ticker"] not in Qr:
             continue
-        tl, th = above.get(round(float(lo) - 0.01, 2)), above.get(round(float(hi), 2))
+        tl, th = above_at(float(lo), True), above_at(float(hi), False)
         if tl not in Qa or th not in Qa:
             continue
         R, L, H = Qr[m["ticker"]], Qa[tl], Qa[th]
@@ -107,12 +112,15 @@ def main():
     ap.add_argument("--start", default="2026-08-01")
     ap.add_argument("--end", default="2026-10-01")
     ap.add_argument("--out", default="data_local/arb")
+    ap.add_argument("--pairs", default="KXBTC:KXBTCD,KXETH:KXETHD", help="range:above pairs, comma separated")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     t0 = datetime.fromisoformat(a.start).replace(tzinfo=timezone.utc)
     t1 = datetime.fromisoformat(a.end).replace(tzinfo=timezone.utc)
     hours = [t0 + timedelta(hours=h) for h in range(int((t1 - t0).total_seconds() // 3600))]
-    for rng, ab in PAIRS.items():
+    for rng, ab in (p.split(":") for p in a.pairs.split(",")):
+        if os.path.exists(os.path.join(a.out, f"{rng}.parquet")):
+            continue
         jobs = [(rng, ab, c) for c in hours]
         rows, done = [], 0
         with ThreadPoolExecutor(4) as ex:
