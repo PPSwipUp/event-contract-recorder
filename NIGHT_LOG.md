@@ -161,6 +161,23 @@
   (366 BTC events, ~$650k each). Market slightly more accurate than the model in both halves. Margin 12c picked on
   Sep-Jan (+$55/mo, t 0.54) -> holdout -$166/mo, t -2.2, 1/9 months positive. Closed.
 
+- 16:xx LIVE CROSS-VENUE (day 1, first 35 min): 1,236 package quotes across 5 matched strikes, best locked package
+  -0.5c after fees, zero positive. Books on the two venues are kept in line. Recorder keeps running 10 days.
+- 16:xx EXECUTION BOT (lead #1, ships OFF): live/executor.py follows watcher signals, sends ONE immediate-or-cancel
+  limit order per signal via Kalshi's V2 endpoint (/portfolio/events/orders; side bid=YES, ask=NO, price on the YES
+  scale). Limits: 100 contracts/order, 3 orders/event, $150/day at risk (persisted), signals >2 s old ignored, no
+  repeat per market/side, kill switch live/STOP. Dry-run by default; --live needs the user's key. Dry-run test on
+  synthetic signals: all limits behaved (stale, duplicate, budget cut 9 contracts, kill switch, NO->YES price).
+- 16:xx POLYMARKET MAKER INCOME: docs confirm crypto taker fee = 0.07*p*(1-p) per share (our assumption was right),
+  maker rebate = 20% of taker fees (fills only), and LIQUIDITY REWARDS = daily per-market pools paid for resting
+  quotes within v cents of mid, scored ((v-s)/v)^2 x size each minute. 19,280 rewarded markets, ~$176k/day of pools.
+  Snapshot scan (backfill/pmrewards.py): 500 shares/side in the top 20 markets ~ $50/day (too good -> needs checks).
+- 16:xx PAPER LP started: live/pmlp.py, 20 long-dated markets (>14 days to end, mid 0.10-0.90), 200 shares/side at
+  mid +/- max(tick, v/3), reward share vs real book each minute, PESSIMISTIC fills (any taker print at/through our
+  quote fills us fully at our price), inventory capped 2x, P&L = rewards + mark-to-market. Log live/pmlp.jsonl.
+- DECISION: paper-LP market filter excludes anything ending within 14 days (sports games, short crypto) because
+  resolution jumps are where liquidity providers get run over. Revert: change horizon in pmlp.choose().
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.

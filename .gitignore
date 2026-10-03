@@ -11,3 +11,5 @@ live/executor_state.json
 live/STOP
 live/xvlive.jsonl
 live/*.log
+live/pmlp_state.json
+live/pmlp.jsonl
