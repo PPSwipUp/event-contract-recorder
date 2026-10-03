@@ -282,6 +282,17 @@
   if everything were caught). Scanner now re-reads each package's legs in ONE request at once ('confirmed', rules out
   legs read seconds apart) and again 1 s later ('catchable'). First run kept as live/kxcryptoarb_v1.jsonl.
 
+- 23:xx NEW-IDEA SWEEP:
+  FEES: Kalshi series fee schedules: 14,389 standard; 18 at half fee (MLB props + MLB game markets; the sports
+  scanner already uses each series' multiplier); 14 FEE-FREE incl. KXBTCY ($39M) / KXETHY ($12M) year-end ranges.
+  FEE-FREE YEAR-END vs DERIBIT (backfill/btcy.py, snapshot): Kalshi brackets sit within ~0-3c of the Deribit-implied
+  probabilities (25-Dec smile + 6.7 days at ATM vol); biggest gaps +2.3c to +2.7c on thin brackets, inside the
+  model's own error and the volatility risk premium. One settlement (1 Jan) = one correlated draw, so it can't be
+  validated statistically. No mispricing worth trading. Closed.
+  KALSHI LIQUIDITY INCENTIVES: /incentive_programs lists 5,000+ active pools (median period_reward 1,000,000 -
+  units probably centi-cents = $100, unconfirmed), dominated by thin NFL player-prop ladders and niche markets:
+  same pattern as Polymarket (rewards where makers get run over). Queued, low prior.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
