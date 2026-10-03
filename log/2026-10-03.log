@@ -73,3 +73,4 @@
 2026-10-03T06:00:00+00:00 open kalshi=5214 polymarket=628 spot=4
 2026-10-03T06:05:00+00:00 open kalshi=5214 polymarket=628 spot=4
 2026-10-03T06:10:00+00:00 open kalshi=5214 polymarket=0 spot=4 errors=polymarket:ReadTimeout
+2026-10-03T06:15:01+00:00 open kalshi=5214 polymarket=628 spot=4
