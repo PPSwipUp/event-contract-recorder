@@ -153,6 +153,10 @@
   t 0.25) -> 2026 holdout -$368/mo, week t -2.0. Extra pre-registered check, longshot bias (buy NO when YES <= 3-15c):
   loses in train and holdout after the fee. Closed.
 
+- 15:xx (H) PM DAILY ABOVE-$K AT NOON (results/PM_ABOVE.md): 8.4k markets, 77k entries (Oct 2025-Oct 2026). Frozen
+  vol model is exactly as accurate as the traded price (Brier 0.0879 vs 0.0876 BTC). Margin 8c picked on Oct-Jan
+  (-$217/mo already) -> holdout -$166/mo. Closed. The crowd on these longer-horizon contracts is efficient.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
