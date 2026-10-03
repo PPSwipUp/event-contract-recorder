@@ -125,6 +125,21 @@
 - DECISION: jobless claims not tested: the only good predictor is economists' consensus (no free point-in-time
   history) and capacity ~10k contracts/week. Revert: write a claims test if a consensus source turns up.
 
+- 14:xx KALSHI vs POLYMARKET (history, backfill/xvenuedata.py): same contract = PM "BTC/ETH above $K on <date>"
+  (Binance 1-min close at noon ET) vs Kalshi KXBTCD/KXETHD noon hourly "above K-0.01". 61 days x 2 assets, last
+  hour before noon. Settlement agreed 1181/1182 markets. PM minute price vs Kalshi mid: equally accurate (Brier
+  0.129 vs 0.131). Lead-lag (trade Kalshi at next-minute ask when PM differs by 3-12c): loses train and test.
+  Apparent "arbs" in 28% of minutes = PM history prices are not quotes (stale/mid) -> can't judge arbs from history.
+- 14:xx started live/xvlive.py: polls both venues' real order books every 5 s, 11:00-12:00 ET daily for 10 days,
+  logs best locked package per strike (PM YES + Kalshi NO, PM NO + Kalshi YES) with sizes and both fees to
+  live/xvlive.jsonl. caffeinate -i for 10 h keeps today's run alive.
+- 14:xx started (F) Polymarket weekly/monthly "what price will BTC/ETH hit" (PM volume $40-170M/month, far bigger
+  than Kalshi) with the FROZEN touch model (k, z from data before any of these markets).
+- 14:xx started (G) range-bot upgrade idea: Deribit implied vol index (DVOL) as an extra input to the next-hour vol
+  forecast (backfill/dvol.py; fit 2025, score 2026).
+- DECISION: Polymarket taker fee taken as 0.07*p*(1-p) per share (the event's feeSchedule says rate 0.07, exponent
+  1; exact formula unverified, this is the conservative reading). Revert: change pm_fee/fee_c in xvlive.py/pmtouch.py.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
