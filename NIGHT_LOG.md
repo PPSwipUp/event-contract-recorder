@@ -232,6 +232,12 @@
   first 70% of the jump data): halves losses but still negative - wide -$10/day (t -1.7), touch -$49/day (t -2.7).
   Polymarket liquidity-rewards LP: CLOSED unless the realistic paper runs disagree.
 
+- 21:xx HOLDING REWARDS (docs): Polymarket pays 4.00% annualised on total position value in eligible markets (hourly
+  sample, daily payout, rate at their discretion). A minted full set (YES+NO, merge back to $1 any time) would earn it
+  with no price risk IF both sides qualify (docs silent). = T-bill-level yield + platform/contract risk. Not an edge.
+- 21:xx PRE-REGISTERED range-bot go-live + scale plan: results/PREREG_SCALEUP.md (gate, start cap 25, steps to 250,
+  stop rules), frozen before any forward verdict.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
