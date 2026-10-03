@@ -247,6 +247,15 @@
   (NHL 48, NBA 24, MLB 12; team-name matching unit-tested, ambiguous games skipped). First polls: best -0.25c,
   median -4.7c. Running.
 
+- 22:xx TWEET COUNTS (results/TWEETS.md, backfill/tweets.py): Polymarket 'Elon Musk # tweets' brackets, $7.9M/event.
+  CHECK: xtracker count lands in the winning bracket for 94/95 windows. Model = running count (posts imported before
+  t) + negative-binomial remainder from the 7-day rate. First run had a BUG: dispersion estimated from 1 day of data
+  -> silent Poisson fallback (overconfident; -$1,248/mo holdout). Fixed (k from train-period daily counts = 4.22,
+  assert added) and rerun - NOTE the holdout has now been viewed twice (bug fix, not tuning).
+  Result: market still more accurate (holdout Brier 0.0794 vs model 0.0828). Train 5c: +$1,490/mo, t 2.0 -> holdout
+  +$214/mo, week t 0.26, max DD $6.3k; cap 500 -> -$59/mo; 24h-stale placebo -$265/mo. Not significant. Closed as
+  an edge; at most a weak paper-forward candidate.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
