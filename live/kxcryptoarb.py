@@ -11,6 +11,9 @@ Depth: each leg's full ask ladder (YES ask = 1 - NO bid, level by level); the pa
 the marginal package still makes money after Kalshi's taker fee (ceil(7 n p (1-p)) cents per leg per level).
 Persistence: polled every few seconds; each opportunity is tracked from first to last sighting and written once it
 disappears (duration, polls seen, best profit, size) to kxcryptoarb.jsonl.
+Validation on every sighting: the package's legs are re-read together in ONE request right away ('confirmed': the
+gap was not an artefact of legs read seconds apart in different batches) and again 1 s later ('catchable': still
+there after a laptop's reaction time).  Only confirmed / catchable profit should be believed.
   python live/kxcryptoarb.py --every 4 --hours 48
 """
 from __future__ import annotations
@@ -137,15 +140,28 @@ def main():
                     r = fill(lv, pay)
                     if not r or r[0] <= 0:
                         continue
+                    tk = sorted({t for t, _ in legs})
+                    Q1 = ladders(tk)                                            # same instant, one request
+                    r1 = fill([Q1.get(t, {}).get(side, []) for t, side in legs], pay)
+                    r2 = None
+                    if r1 and r1[0] > 0:
+                        time.sleep(1.0)
+                        Q2 = ladders(tk)
+                        r2 = fill([Q2.get(t, {}).get(side, []) for t, side in legs], pay)
                     key = f"{coin}|{kind}|{'+'.join(t.split('-')[-1] + side[0] for t, side in legs)}|{close:%H}"
                     seen.add(key)
                     s = active.setdefault(key, {"coin": coin, "kind": kind, "close": close.isoformat(), "legs": len(legs),
                                                 "first": now.isoformat(timespec="seconds"), "polls": 0, "best_profit_$": 0,
-                                                "best_size": 0, "best_edge_c": 0, "min_to_close": round((close - now).total_seconds() / 60, 1)})
+                                                "best_size": 0, "best_edge_c": 0, "min_to_close": round((close - now).total_seconds() / 60, 1),
+                                                "confirmed_profit_$": 0, "catchable_profit_$": 0, "catchable_size": 0})
                     s["polls"] += 1
                     s["last"] = now.isoformat(timespec="seconds")
                     if r[0] > s["best_profit_$"]:
                         s["best_profit_$"], s["best_size"], s["best_edge_c"] = r
+                    if r1 and r1[0] > s["confirmed_profit_$"]:
+                        s["confirmed_profit_$"] = r1[0]
+                    if r2 and r2[0] > s["catchable_profit_$"]:
+                        s["catchable_profit_$"], s["catchable_size"] = r2[0], r2[1]
         except Exception as err:
             print(now.strftime("%H:%M:%S"), "error", repr(err)[:150], flush=True)
         with open(out, "a") as f:
