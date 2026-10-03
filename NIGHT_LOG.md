@@ -111,6 +111,20 @@
   chosen (5c, 10am) loses -$1,032/mo on 2026, all 6 cities negative. Closed (results/WEATHER.md).
   Only alive lead: original crypto range taker bot (forward tests, ~early Dec).
 
+## 2026-10-03 (user away): nowcast markets, Kalshi vs Polymarket, then range bot
+- 13:xx nowcast survey: by volume AAA gas daily (KXAAAGASD ~300-400k contracts/day) and weekly (KXAAAGASW ~1M/wk)
+  dwarf TSA weekly (~20k/wk) and jobless claims (~10k/wk). Settlement values (expiration_value) give AAA daily truth
+  from 2026-03-26.
+- 13:xx GAS DAILY (results/GAS.md): linear nowcast (last 3 changes + UGA returns), rolling refit. Every Apr-Jun config
+  loses; holdout Jul-Oct -$663/mo, no better than zero-change placebo. Market much sharper in the evening window
+  (Brier 0.067 vs model 0.153). Closed.
+- 13:xx GAS WEEKLY (results/GAS_WEEKLY.md): every Apr-Jun config loses; holdout +$80/mo but zero-change placebo
+  +$223/mo -> noise. Closed.
+- 14:xx TSA WEEKLY (results/TSA.md): known days + last-year x recent ratio. Train 2023-25 +$14/mo t 1.1; holdout 2026
+  -$17/mo. Market more accurate. Closed (tiny capacity anyway).
+- DECISION: jobless claims not tested: the only good predictor is economists' consensus (no free point-in-time
+  history) and capacity ~10k contracts/week. Revert: write a claims test if a consensus source turns up.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
