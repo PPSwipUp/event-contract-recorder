@@ -206,6 +206,14 @@
 - 18:xx started live/pmgap.py: top-of-book every 3 s on 40 markets for 4 days, to test 'be first inside a
   freshly widened spread'. 71% of snapshots 1-tick spread, ~10% 2-tick.
 
+- 19:xx SETTLEMENT LAG (results/SETTLE.md, backfill/settle.py): PM daily BTC/ETH noon markets keep trading ~2 h after
+  the Binance candle fixes the result. 6,248 markets, 376 days. CHECK: Binance-implied result = PM result in
+  6,248/6,248 (no settlement risk seen). Taker (buy the winner after 12:02): $13.3k over the year, but $10k is ONE
+  event (ETH 2026-04-20, a whale sold the winner at 59-83c 25 min after noon) - windfalls, not a stream; Sep 2026 $0.
+  Maker (rest a bid on the winner): $18.2k/yr, 81% of it at 99.9c (0.1c/share, behind existing queues); by month
+  falling from $3.6k (Nov 2025) to $55-186 (Jul-Sep 2026) -> competed away. Real, verified, but now ~$0-5/day.
+  Possible follow-up: same structure in sports/other categories (bigger volume, own result sources).
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
