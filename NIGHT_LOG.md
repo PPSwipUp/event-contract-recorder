@@ -256,6 +256,16 @@
   +$214/mo, week t 0.26, max DD $6.3k; cap 500 -> -$59/mo; 24h-stale placebo -$265/mo. Not significant. Closed as
   an edge; at most a weak paper-forward candidate.
 
+- 23:xx LP GROUND TRUTH FROM REAL MAKERS (results/LP_WALLETS.md, backfill/lpwallets.py): the 40 busiest maker wallets
+  in the paper-LP's 20 markets. Public activity API: rewards + maker rebates last 30 days = $493k in total.
+  Polymarket leaderboard profit last month: -$1.02M in total, median -$4.3k, only 16/40 profitable. The most
+  reward-heavy third (rewards/volume) took $340k of rewards yet lost $466k. Whether the leaderboard figure already
+  includes rewards is unknown; either way the group is net negative (-$531k if it excludes them).
+  Also: Polymarket's market_competitiveness is on a different scale from total order score (Balance of Power: ~300
+  vs 2M+ shares near mid), so it cannot bound the reward share.
+  VERDICT: independent confirmation of the replay - liquidity rewards do not cover makers' trading losses in these
+  markets, even for large professional makers. LP lead closed; paper runs left on only as a third check.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
