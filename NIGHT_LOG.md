@@ -100,6 +100,13 @@
   VERDICT: market-making lead is an artifact -> DEAD (no-model quoting also loses -1.6c, so books are defended).
   Full-data sim chained (data_local/final_sim.sh) for the record.
 
+- 10-03 laptop rebooted overnight: /tmp venv gone -> persistent .venv in repo. Full sim (1,081 hours, all UTC hours)
+  confirmed market making loses (-3.5c/contract); paper run final -$69.38 (174 fills, hour t -3.25). Lead closed.
+- 10-03 scout workflow failed (Claude spend limit). Scouted inline: WEATHER daily-high markets are deep (NY ~182k,
+  LA ~580k, MIA ~159k contracts/day, history to 2021) and free point-in-time data exists (Open-Meteo previous-runs
+  forecasts, Mesonet ASOS obs, NWS CLI truth). Added dohfix.py (only bypasses DNS when EE block IP seen).
+  Started weatherdata.py (6 cities, 2025-01..2026-09, trades in 10-11 and 14-15 local windows).
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.

@@ -4,3 +4,5 @@ backfill/data_local/
 live/spxscan.jsonl
 live/arbscan.jsonl
 live/papermaker.jsonl
+live/paperscore.log
+.venv/

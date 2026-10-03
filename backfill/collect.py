@@ -17,6 +17,8 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 import requests
 
+import dohfix  # noqa: F401  (EE hotspot DNS block)
+
 K = "https://api.elections.kalshi.com/trade-api/v2"
 ET = ZoneInfo("America/New_York")
 SERIES = {"KXBTC": "BTC-USD", "KXETH": "ETH-USD"}
