@@ -6,3 +6,8 @@ live/arbscan.jsonl
 live/papermaker.jsonl
 live/paperscore.log
 .venv/
+live/executor.jsonl
+live/executor_state.json
+live/STOP
+live/xvlive.jsonl
+live/*.log
