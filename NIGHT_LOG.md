@@ -214,6 +214,17 @@
   falling from $3.6k (Nov 2025) to $55-186 (Jul-Sep 2026) -> competed away. Real, verified, but now ~$0-5/day.
   Possible follow-up: same structure in sports/other categories (bigger volume, own result sources).
 
+- 19:xx INTERNAL ARBITRAGE, BOTH VENUES (live/kxevarb.py, live/pmevarb.py; read-only, 48 h runs):
+  Kalshi: every open mutually exclusive event (4,825 events, 38k markets). Safe ALL_NO packages: 3 = $0.17.
+  ALL_YES 'hits' ($3.7k nominal) are all non-exhaustive sets (e.g. next Pope: someone unlisted can win) -> not arbs.
+  Earlier crypto range-vs-above/below scanner: 38 packages in 7 h = $8 (~$1.2/h), confirms the old estimate.
+  Polymarket: 14k events / 232k books. First run reported $3.1k of 'safe' ladder arbs -> VALIDATION found two scanner
+  bugs ((LOW) price markets treated as upward ladders; '$2B' parsed as $2). Fixed + unit-tested: 3 safe ladders = $0.90.
+  ALL_YES hits checked by hand: missing outcomes (a football match with the away-win market closed, candidate lists
+  without 'Other'). A few two-way races (Hochul v Blakeman in Nassau, D v R white-vote winner) are near-arbs at 1-4c
+  with small third-outcome risk and a month of capital lock-up: ~$5 each. Verdict: both venues keep exclusive sets
+  and ladders tight; scanners keep running for rare transients. Buggy first log kept as live/pmevarb_v1_buggy.jsonl.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.

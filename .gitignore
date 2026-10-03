@@ -16,3 +16,5 @@ live/pmlp.jsonl
 live/pmlp_tight_state.json
 live/pmlp_tight.jsonl
 live/pmgap.jsonl
+live/kxevarb.jsonl
+live/pmevarb*.jsonl
