@@ -148,6 +148,11 @@
   signals while next-hour vol < 0.2 x its median (backtests unaffected: no bets came from those hours).
 - 14:xx (F) Polymarket trade API caps offset at 10,000; rewrote the pager to walk back in time with `end`. Re-downloading.
 
+- 15:xx (F) PM TOUCH RESULT (results/PM_TOUCH.md): 2.6M taker trades, 2,394 markets (Jul 2025-Sep 2026). Market
+  slightly more accurate than the frozen model in 2026 (Brier 0.0725 vs 0.0762 BTC). Margin 12c picked on 2025 (+$39/mo,
+  t 0.25) -> 2026 holdout -$368/mo, week t -2.0. Extra pre-registered check, longshot bias (buy NO when YES <= 3-15c):
+  loses in train and holdout after the fee. Closed.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
