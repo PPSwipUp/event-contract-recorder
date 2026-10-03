@@ -274,6 +274,14 @@
   Post-hoc 'buys >= 30c were positive in B' checked against A across all wallets: not consistent (30-50c band +5.4%
   in A, -2.6% in B; per-market mean +0.96% A vs -0.54% B). No copyable pattern. Closed; live copier not built.
 
+- 22:xx DEEP KALSHI CRYPTO ARB (live/kxcryptoarb.py): 6 coins (BTC ETH SOL XRP BNB HYPE; DOGE strikes differ),
+  ~11k packages/hour (1-3 bracket spans, above/below ladders, full bracket sets), book-depth walk (unit-tested),
+  persistence. First hour (Sat 21-22 BST): 3 opportunities, $0.16, none survived to the next 4-s poll.
+  HISTORY (data_local/arb, Aug-Sep 1-min candles): BTC 1.6 / ETH 1.0 package runs per hour, median edge 0.5-0.7c per
+  contract, median life < 1 min, 29% start in the last 15 min -> ~$0.30/h at 10 contracts for BTC+ETH (~$230/month
+  if everything were caught). Scanner now re-reads each package's legs in ONE request at once ('confirmed', rules out
+  legs read seconds apart) and again 1 s later ('catchable'). First run kept as live/kxcryptoarb_v1.jsonl.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
