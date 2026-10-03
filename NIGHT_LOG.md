@@ -266,6 +266,14 @@
   VERDICT: independent confirmation of the replay - liquidity rewards do not cover makers' trading losses in these
   markets, even for large professional makers. LP lead closed; paper runs left on only as a third check.
 
+- 21:xx COPY-TRADING (results/COPYTRADE.md, backfill/copytrade.py): 616 public wallets (top 500 by volume + top 200
+  by profit), 2.18M resolved buys. Picked the top 20 by copy return on Jan-Apr 2026 (+260%/trade in-sample, mostly
+  1c longshots that hit), copied on May-Sep at THEIR price (zero delay, the best case): -22%/trade, weekly t -2.2,
+  26% positive weeks = about -$147k/month at $100 per copied trade (~6,650 trades/month). Copying all 398 eligible
+  wallets: -8.5%/trade. Persistence of wallet returns A->B: rank corr 0.17 (weak).
+  Post-hoc 'buys >= 30c were positive in B' checked against A across all wallets: not consistent (30-50c band +5.4%
+  in A, -2.6% in B; per-market mean +0.96% A vs -0.54% B). No copyable pattern. Closed; live copier not built.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
