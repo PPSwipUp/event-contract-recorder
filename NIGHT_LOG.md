@@ -157,6 +157,10 @@
   vol model is exactly as accurate as the traded price (Brier 0.0879 vs 0.0876 BTC). Margin 8c picked on Oct-Jan
   (-$217/mo already) -> holdout -$166/mo. Closed. The crowd on these longer-horizon contracts is efficient.
 
+- 15:xx (I) PM DAILY PRICE RANGES (results/PM_RANGE.md): the range bot's idea on Polymarket's daily noon ranges
+  (366 BTC events, ~$650k each). Market slightly more accurate than the model in both halves. Margin 12c picked on
+  Sep-Jan (+$55/mo, t 0.54) -> holdout -$166/mo, t -2.2, 1/9 months positive. Closed.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
