@@ -20,8 +20,9 @@ from datetime import datetime, timedelta, timezone
 
 import numpy as np
 import pandas as pd
+import requests
 
-from pmtouchdata import jget
+from pmtouchdata import S, jget
 
 D = "data_local/sportsettle"
 TAGS = ["nfl", "mlb", "nba", "nhl", "epl", "soccer", "ncaaf", "tennis"]
@@ -35,14 +36,20 @@ def games():
     for tag in TAGS:
         off = 0
         while off < 2500:
-            evs = jget("https://gamma-api.polymarket.com/events", tag_slug=tag, closed="true", limit=100, offset=off,
-                       order="endDate", ascending="false", end_date_min=since)
+            try:
+                r = S.get("https://gamma-api.polymarket.com/events", timeout=120, params=dict(
+                    tag_slug=tag, closed="true", limit=50, offset=off, order="endDate", ascending="false", end_date_min=since))
+                evs = r.json() if r.status_code == 200 else None
+            except (requests.RequestException, ValueError):
+                evs = None
             if not isinstance(evs, list) or not evs:
                 break
-            off += 100
+            off += 50
             for e in evs:
+                if " - " in e.get("title", ""):                         # side markets: '... - 5th Inning Winner'
+                    continue
                 for m in e.get("markets") or []:
-                    if m.get("sportsMarketType") not in ("moneyline", None) or not m.get("gameStartTime") or not m.get("closedTime"):
+                    if m.get("sportsMarketType") != "moneyline" or not m.get("gameStartTime") or not m.get("closedTime"):
                         continue
                     res = json.loads(m.get("outcomePrices") or "[]")
                     outs = json.loads(m.get("outcomes") or "[]")

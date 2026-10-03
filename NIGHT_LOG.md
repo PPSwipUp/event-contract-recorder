@@ -238,6 +238,15 @@
 - 21:xx PRE-REGISTERED range-bot go-live + scale plan: results/PREREG_SCALEUP.md (gate, start cap 25, steps to 250,
   stop rules), frozen before any forward verdict.
 
+- 21:xx SPORTS SETTLEMENT LAG (results/SPORT_SETTLE.md): 2,199 games / 119 days. Apparent $11k taker + $4.8k maker
+  profit is NOT real: it is mostly tennis bought at 7-37c 5-9 h after the SCHEDULED start = matches still being played
+  (order-of-play delays); one NFL game likewise. Polymarket has no game-end time, so 'result known' can't be
+  established from its data. Reliable-start leagues: NHL $0.35, EPL $17, MLB ~$1.3k/4 months (rain-delay doubt).
+  Not validated; would need real end-of-game times (league play-by-play). Parked.
+- 21:xx CROSS-VENUE SPORTS (live/xvsports.py, 7 days): Kalshi game markets vs Polymarket moneylines, 84 games matched
+  (NHL 48, NBA 24, MLB 12; team-name matching unit-tested, ambiguous games skipped). First polls: best -0.25c,
+  median -4.7c. Running.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
