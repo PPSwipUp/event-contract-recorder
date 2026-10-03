@@ -293,6 +293,11 @@
   units probably centi-cents = $100, unconfirmed), dominated by thin NFL player-prop ladders and niche markets:
   same pattern as Polymarket (rewards where makers get run over). Queued, low prior.
 
+- 23:xx SCHOOL WI-FI CURFEW (no internet 00:00-06:30 UK): stopped the alt-coin arb history download (saves only at
+  the end; restart after 06:30), made live/pmlp.py drop quotes after any >5-min gap (no fake fills from trades during
+  the outage), hourly loop replaced by a 06:35 alarm. Scanner per-hour rates must exclude the curfew.
+  Deep crypto arb so far: 8 seen ($2.86), 0 confirmed when legs re-read together.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
@@ -304,6 +309,7 @@
 (pending)
 
 ## Left to do
+0. After 06:30: restart `python backfill/arb.py --pairs KXSOLE:KXSOLD,KXXRP:KXXRPD,KXBNB:KXBNBD,KXHYPE:KXHYPED`.
 1. A: collect SOL/XRP/DOGE range trades Jul-Sep 2026, run frozen rules.
 2. B: 15-min up/down with 1-min candles + Coinbase.
 3. C: Polymarket crypto up/down history.

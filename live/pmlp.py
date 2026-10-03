@@ -125,8 +125,15 @@ def main():
         json.dump(st, open(state_path, "w"))
     print(len(st["markets"]), "markets:", [m["question"][:40] for m in st["markets"]], flush=True)
     stop = time.time() + 3600 * a.hours
+    last_loop = time.time()
     while time.time() < stop:
         t0 = time.time()
+        if t0 - last_loop > 300:                       # came back from an outage (e.g. the school Wi-Fi night curfew):
+            for p in st["pos"].values():               # quotes were not live meanwhile, so don't fill them against
+                p["bid"] = p["ask"] = None             # the trades that happened during the gap
+                p["last"] = int(t0)
+            print(datetime.now(timezone.utc).strftime("%H:%M"), f"resumed after {(t0 - last_loop) / 60:.0f} min gap", flush=True)
+        last_loop = t0
         for m in st["markets"]:
             p = st["pos"][m["cid"]]
             try:
