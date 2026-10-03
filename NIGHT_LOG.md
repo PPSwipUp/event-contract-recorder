@@ -184,6 +184,20 @@
   (corr 0.08, different scale; 8,177 markets in that feed, $56k/day). The paper reward accrual is an ESTIMATE of
   the scoring; true earnings can only be confirmed with a real (small) account. Treat paper rewards as an upper bound.
 
+- 18:xx LP VALIDATION (results/PM_LP_REPLAY.md, backfill/pmlpreplay.py): 60-day replay of the paper LP's quoting on
+  its 20 markets with real taker trades and 1-min midpoints, tick-correct quotes, two queue bounds.
+  Flaws found in the paper LP: (1) quotes were off the tick grid (mid of a 1c spread is a half-cent), (2) fills
+  assumed front of queue although 20k-2M shares sit at the touch in the big markets. Book mirroring and the
+  size-adjusted midpoint were fine.
+  RESULT per active day (rewards = today's share, assumed constant):
+    wide (v/3, 200/side):  back queue -$21/day (t -2.1), front -$20/day
+    touch (500/side):      back queue -$88/day (t -2.7, max DD $5.5k); front +$306/day = impossible queue position
+  Losses concentrate in new, thin, news-driven markets (data-centre moratoriums, Cornell 7, Israel/Iran) where
+  price trends and inventory piles up; liquid markets (Senate, Balance of Power, Fed) roughly break even but their
+  reward share is pennies (huge competing depth). Rewards are big exactly where makers get run over.
+  VERDICT: as designed, liquidity rewards do not beat fill losses. Paper runs restarted with realistic rules (tick
+  grid, back-of-queue fills); old logs kept as live/pmlp*_v1_offgrid.jsonl.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.

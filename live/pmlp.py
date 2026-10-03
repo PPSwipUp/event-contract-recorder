@@ -1,12 +1,13 @@
 """Paper liquidity provider for Polymarket's liquidity-rewards program.  Read-only: it never places orders.
 
 Each minute (Polymarket samples the book once a minute), for each chosen market:
-  quote : a hypothetical bid at mid - d and ask at mid + d (YES scale), X shares each, d = max(1 tick, v/3)
+  quote : a hypothetical bid at floor(mid - d) and ask at ceil(mid + d) on the tick grid, X shares each, d = v/3
+          (or half a tick = join the touch, --dist tick)
           (v = the market's max qualifying spread); a side is dropped when inventory on it would exceed 2X
   reward: our score S*X with S = ((v - d)/v)^2 against the qualifying orders already in the real book
           (others' score = mean of their bid-side and ask-side scores); accrue share * daily rate / 1440
-  fills : every real taker trade since the last minute that printed AT OR THROUGH our quote fills our whole
-          remaining size there at OUR price (pessimistic: we are filled whenever price trades through us)
+  fills : every real taker trade since the last minute that printed strictly THROUGH our quote fills our whole
+          size at OUR price (back of the queue: at-price prints go to the orders already there)
   P&L   : cash + inventory marked at mid; rewards counted separately.  Maker rebates are ignored (conservative).
 Markets: the highest daily pools among those ending more than 14 days out with mid in [0.10, 0.90] and both books
 quoted (long-dated questions; no live sports games, no short crypto contracts).  State survives restarts.
@@ -132,9 +133,11 @@ def main():
                 # 1) fills against the quotes we had up since the last sample
                 tr = new_trades(m["cid"], p["last"])
                 for ts, px, bought_yes in sorted(tr):
-                    if p["bid"] is not None and not bought_yes and px <= p["bid"] + 1e-9:
+                    # back of the queue: only prints strictly THROUGH our price reach us (60-day replay showed the
+                    # at-price "front of queue" rule is fantasy when 20k-2M shares already sit at the touch)
+                    if p["bid"] is not None and not bought_yes and px < p["bid"] - 1e-9:
                         p["inv"] += a.size; p["cash"] -= a.size * p["bid"]; p["fills"] += 1; p["bid"] = None
-                    if p["ask"] is not None and bought_yes and px >= p["ask"] - 1e-9:
+                    if p["ask"] is not None and bought_yes and px > p["ask"] + 1e-9:
                         p["inv"] -= a.size; p["cash"] += a.size * p["ask"]; p["fills"] += 1; p["ask"] = None
                 if tr:
                     p["last"] = max(ts for ts, _, _ in tr)
@@ -147,14 +150,19 @@ def main():
                 v, tick = m["v"], m["tick"]
                 d = tick if a.dist == "tick" else max(tick, math.ceil(v / 3 / 100 / tick) * tick)   # dollars from mid
                 p["mid"] = mid
-                p["bid"] = round(mid - d, 4) if p["inv"] < 2 * a.size and mid - d > 0 else None
-                p["ask"] = round(mid + d, 4) if p["inv"] > -2 * a.size and mid + d < 1 else None
+                if a.dist == "tick":
+                    d = tick / 2                                                 # join the best bid / ask
+                bid = round(math.floor(round((mid - d) / tick, 6)) * tick, 4)       # valid prices only (tick grid)
+                ask = round(math.ceil(round((mid + d) / tick, 6)) * tick, 4)
+                p["bid"] = bid if p["inv"] < 2 * a.size and bid > 0 else None
+                p["ask"] = ask if p["inv"] > -2 * a.size and ask < 1 else None
 
                 def side(levels):
                     return sum(((v - abs(px - mid) * 100) / v) ** 2 * q for px, q in levels
                                if abs(px - mid) * 100 < v and q >= m["min_size"])
                 others = (side(b["bids"]) + side(b["asks"])) / 2
-                s = ((v - d * 100) / v) ** 2 if d * 100 < v else 0.0
+                dd = max(mid - bid, ask - mid) * 100
+                s = ((v - dd) / v) ** 2 if dd < v else 0.0
                 q_bid = s * a.size if p["bid"] is not None else 0.0
                 q_ask = s * a.size if p["ask"] is not None else 0.0
                 ours = min(q_bid, q_ask) if not 0.10 <= mid <= 0.90 else max(min(q_bid, q_ask), max(q_bid, q_ask) / 3)
