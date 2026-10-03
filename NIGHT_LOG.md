@@ -107,6 +107,10 @@
   forecasts, Mesonet ASOS obs, NWS CLI truth). Added dohfix.py (only bypasses DNS when EE block IP seen).
   Started weatherdata.py (6 cities, 2025-01..2026-09, trades in 10-11 and 14-15 local windows).
 
+- 10-03 WEATHER RESULT: market far more accurate (Brier 2026 2pm 0.078 vs model 0.162); every 2025 config loses;
+  chosen (5c, 10am) loses -$1,032/mo on 2026, all 6 cities negative. Closed (results/WEATHER.md).
+  Only alive lead: original crypto range taker bot (forward tests, ~early Dec).
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
