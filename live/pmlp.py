@@ -110,8 +110,11 @@ def main():
     ap.add_argument("--markets", type=int, default=20)
     ap.add_argument("--size", type=float, default=200)
     ap.add_argument("--hours", type=float, default=24 * 14)
+    ap.add_argument("--dist", default="third", choices=["third", "tick"], help="quote v/3 or one tick from mid")
+    ap.add_argument("--tag", default="", help="suffix for state/log files (parallel paper runs)")
     a = ap.parse_args()
-    state_path, log_path = os.path.join(HERE, "pmlp_state.json"), os.path.join(HERE, "pmlp.jsonl")
+    state_path = os.path.join(HERE, f"pmlp{a.tag}_state.json")
+    log_path = os.path.join(HERE, f"pmlp{a.tag}.jsonl")
     try:
         st = json.load(open(state_path))
     except (OSError, ValueError):
@@ -142,7 +145,7 @@ def main():
                     continue
                 mid = (b["bids"][0][0] + b["asks"][0][0]) / 2
                 v, tick = m["v"], m["tick"]
-                d = max(tick, math.ceil(v / 3 / 100 / tick) * tick)          # dollars from mid
+                d = tick if a.dist == "tick" else max(tick, math.ceil(v / 3 / 100 / tick) * tick)   # dollars from mid
                 p["mid"] = mid
                 p["bid"] = round(mid - d, 4) if p["inv"] < 2 * a.size and mid - d > 0 else None
                 p["ask"] = round(mid + d, 4) if p["inv"] > -2 * a.size and mid + d < 1 else None

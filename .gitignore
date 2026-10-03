@@ -13,3 +13,5 @@ live/xvlive.jsonl
 live/*.log
 live/pmlp_state.json
 live/pmlp.jsonl
+live/pmlp_tight_state.json
+live/pmlp_tight.jsonl
