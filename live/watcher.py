@@ -53,6 +53,8 @@ class VolModel:
         self.z = np.sort((W.ret[ok] / (self.k * sig[ok])).values)   # empirical shape of standardised moves
         self.next_sig = float(np.exp(P.auto_h1.values[-1]))          # forecast for the hour after the last full one
         self.last_hour = W.index[-1]
+        # a frozen price feed (e.g. Coinbase outage, 2026-05-08) gives zero-vol hours and a collapsed forecast
+        self.min_sig = 0.2 * float(sig[ok].median())
 
     def _minutes(self, start, end):
         out, t = [], start
@@ -187,7 +189,7 @@ class Watcher:
         if not m or not b or self.spot is None:
             return
         left = m["close_ts"] - time.time()
-        if left <= 0:
+        if left <= 0 or self.model.next_sig < self.model.min_sig:     # no signals on a collapsed vol forecast
             return
         p = bracket_prob(self.model, self.spot, m["floor"], m["cap"], left)
         (ya, ys), (na, ns) = b.best()

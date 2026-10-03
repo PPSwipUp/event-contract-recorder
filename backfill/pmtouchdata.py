@@ -63,14 +63,21 @@ def markets():
 
 
 def trades(cid):
-    out, off = [], 0
+    """newest first, paging backwards with `end` (the offset is capped at 10,000)"""
+    out, end = {}, None
     while True:
-        j = jget("https://data-api.polymarket.com/trades", market=cid, limit=1000, offset=off, takerOnly="true")
-        out += [{"cid": cid, "ts": t["timestamp"], "side": t["side"], "outcome": t["outcome"], "price": float(t["price"]),
-                 "size": float(t["size"])} for t in j]
-        if len(j) < 1000:
-            return out
-        off += 1000
+        p = dict(market=cid, limit=1000, takerOnly="true", **({"end": end} if end else {}))
+        j = jget("https://data-api.polymarket.com/trades", **p)
+        new = 0
+        for t in j:
+            key = (t["transactionHash"], t["asset"], t["side"], t["size"], t["price"])
+            if key not in out:
+                new += 1
+                out[key] = {"cid": cid, "ts": t["timestamp"], "side": t["side"], "outcome": t["outcome"],
+                            "price": float(t["price"]), "size": float(t["size"])}
+        if len(j) < 1000 or not new:
+            return list(out.values())
+        end = min(t["timestamp"] for t in j)
 
 
 if __name__ == "__main__":

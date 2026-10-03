@@ -7,6 +7,8 @@
 - In progress: alt-coin hourly ranges (SOL, XRP, DOGE).
 
 ## Needs human
+- live/watcher.py now refuses to signal when the vol forecast has collapsed (frozen price feed). Review the
+  one-line guard (min_sig) before relying on the watcher.
 - Market-making edge FAILED the realistic simulation (all scenarios lose; root cause = print-price fill assumption in
   maker.py). Do NOT trade it. Paper run (live/papermaker.py) also negative so far.
 
@@ -139,6 +141,12 @@
   forecast (backfill/dvol.py; fit 2025, score 2026).
 - DECISION: Polymarket taker fee taken as 0.07*p*(1-p) per share (the event's feeSchedule says rate 0.07, exponent
   1; exact formula unverified, this is the conservative reading). Revert: change pm_fee/fee_c in xvlive.py/pmtouch.py.
+
+- 14:xx (G) DVOL RESULT (results/DVOL.md): adds nothing to the next-hour vol forecast out of sample (BTC log-rv MSE
+  0.1175 -> 0.1174, ETH worse). Closed. Side finding: a frozen Coinbase feed (2026-05-08 05-07 UTC, zero-move hours)
+  collapses the ppc forecast ~1000x -> any live bot would see fake huge edges. Added a guard to live/watcher.py: no
+  signals while next-hour vol < 0.2 x its median (backtests unaffected: no bets came from those hours).
+- 14:xx (F) Polymarket trade API caps offset at 10,000; rewrote the pager to walk back in time with `end`. Re-downloading.
 
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
