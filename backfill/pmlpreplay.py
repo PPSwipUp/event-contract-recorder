@@ -30,6 +30,9 @@ from pmtouchdata import jget  # noqa: E402
 
 D = "data_local/pmlpreplay"
 DAYS = 60
+THR = float(open("data_local/pmjump/calm_threshold.txt").read()) if os.path.exists("data_local/pmjump/calm_threshold.txt") else 1.0
+# 'back+calm': back-of-queue fills, and no quotes while the past-24h mean hourly move >= THR (frozen in advance from
+# the first 70% of 6 months of 129 long-dated markets, backfill/pmjump.py) - one pre-registered variant, not tuned
 CFG = {"wide": 200, "touch": 500}
 
 
@@ -67,8 +70,17 @@ def quotes(mid, v, tick, kind):
     return round(bid, 4), round(ask, 4)
 
 
-def replay(m, mids, T, kind, queue):
+def calm_mask(mids, thr):
+    """True where the past-24h mean hourly |move| (known at that minute) is below thr"""
+    idx = pd.to_datetime(mids.index, unit="s", utc=True)
+    hourly = pd.Series(mids.values, index=idx).resample("1h").last().ffill()
+    act = hourly.diff().abs().rolling(24, min_periods=6).mean().shift(1)      # completed hours only
+    return (act.reindex(idx, method="ffill") < thr).values
+
+
+def replay(m, mids, T, kind, queue, calm=None):
     size = CFG[kind]
+    quoted = 0
     inv = cash = 0.0
     fills, daily = 0, {}
     ti = 0
@@ -79,6 +91,9 @@ def replay(m, mids, T, kind, queue):
         mid = mids.iloc[i - 1]
         bid, ask = quotes(mid, m["v"], m["tick"], kind)
         bid_on, ask_on = inv < 2 * size and bid > 0, inv > -2 * size and ask < 1
+        if calm is not None and not calm[i - 1]:
+            bid_on = ask_on = False                                  # jumpy: no quotes this minute
+        quoted += bid_on or ask_on
         while ti < len(T) and T[ti][0] < t0:
             ti += 1
         j = ti
@@ -94,7 +109,7 @@ def replay(m, mids, T, kind, queue):
         day = pd.Timestamp(t1, unit="s").strftime("%Y-%m-%d")
         daily[day] = cash + inv * mids.iloc[i]                       # cumulative mark-to-market at day end
     s = pd.Series(daily)
-    return fills, s.diff().fillna(s.iloc[0]) if len(s) else s, inv * mids.iloc[-1] + cash
+    return fills, s.diff().fillna(s.iloc[0]) if len(s) else s, inv * mids.iloc[-1] + cash, quoted / max(1, len(ts_list) - 1)
 
 
 def reward_now(m, kind):
@@ -140,13 +155,15 @@ def main():
             continue
         for kind in CFG:
             rw = reward_now(m, kind)
-            for queue in ("front", "back"):
-                f, d, total = replay(m, mids, T, kind, queue)
+            for queue in ("front", "back", "back+calm"):
+                cm = calm_mask(mids, THR) if queue == "back+calm" else None
+                f, d, total, q = replay(m, mids, T, kind, queue.split("+")[0], cm)
                 ndays = max(1, len(d))
                 rows.append({"market": m["question"][:40], "kind": kind, "queue": queue, "trades": len(T), "fills": f,
-                             "fill_pnl_day_$": round(total / ndays, 2), "reward_day_$": round(rw, 2),
-                             "net_day_$": round(total / ndays + rw, 2), "worst_day_$": round(d.min(), 2) if len(d) else 0})
-                daily.append((d + rw).rename(f"{m['cid'][:8]}|{kind}|{queue}"))     # net per active day
+                             "quoted_%": round(100 * q), "fill_pnl_day_$": round(total / ndays, 2),
+                             "reward_day_$": round(rw * q, 2), "net_day_$": round(total / ndays + rw * q, 2),
+                             "worst_day_$": round(d.min(), 2) if len(d) else 0})
+                daily.append((d + rw * q).rename(f"{m['cid'][:8]}|{kind}|{queue}"))     # net per active day
     R = pd.DataFrame(rows)
     Dd = pd.concat(daily, axis=1)                                   # NaN = market not live that day
     L = ["# Paper liquidity provider: 60-day historical replay of fill costs (20 markets)", "",
@@ -155,7 +172,7 @@ def main():
                                            reward_day=("reward_day_$", "sum"), net_day=("net_day_$", "sum")).round(2)
     L += ["## Totals per day (all 20 markets)", "", tot.to_markdown(), ""]
     for kind in CFG:
-        for queue in ("front", "back"):
+        for queue in ("front", "back", "back+calm"):
             cols = [c for c in Dd.columns if c.endswith(f"|{kind}|{queue}")]
             net = Dd[cols].sum(axis=1, min_count=1).dropna()
             eq = net.cumsum()
@@ -164,6 +181,8 @@ def main():
                      f"t {net.mean() / net.std() * np.sqrt(len(net)):.2f}" if net.std() > 0 else f"- {kind}/{queue}: no data")
     L += ["", "## Per market (touch / back queue = most realistic tight quoting)", "",
           R[(R.kind == "touch") & (R.queue == "back")].sort_values("net_day_$").to_markdown(index=False), "",
+          "## Per market (touch / back queue / calm filter)", "",
+          R[(R.kind == "touch") & (R.queue == "back+calm")].sort_values("net_day_$").to_markdown(index=False), "",
           "## Per market (wide / back queue)", "",
           R[(R.kind == "wide") & (R.queue == "back")].sort_values("net_day_$").to_markdown(index=False), ""]
     open("../results/PM_LP_REPLAY.md", "w").write("\n".join(L))

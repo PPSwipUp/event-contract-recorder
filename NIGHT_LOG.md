@@ -225,6 +225,13 @@
   with small third-outcome risk and a month of capital lock-up: ~$5 each. Verdict: both venues keep exclusive sets
   and ladders tight; scanners keep running for rare transients. Buggy first log kept as live/pmevarb_v1_buggy.jsonl.
 
+- 20:xx PPC JUMP TEST (results/PM_JUMP.md): 129 long-dated rewarded markets, 6 months hourly, test = last 30%.
+  Jump (next-hour move >= 3c) AUC: ppc 0.751, last-hour 0.750, past-24h mean 0.853 -> PPC LOSES to the simple
+  placebo; not wired in. (First run crashed: prices-history allows <= 15 days per request; fixed.)
+- 20:xx LP + CALM FILTER (pre-registered: no quotes while past-24h mean hourly move >= 0.00958, frozen from the
+  first 70% of the jump data): halves losses but still negative - wide -$10/day (t -1.7), touch -$49/day (t -2.7).
+  Polymarket liquidity-rewards LP: CLOSED unless the realistic paper runs disagree.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.

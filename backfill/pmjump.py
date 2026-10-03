@@ -1,6 +1,6 @@
 """Can PPC's volatility forecast tell a Polymarket liquidity provider when a price jump is coming?
 
-Markets: the 600 biggest current reward pools, kept if ending > 14 days out (the ones a liquidity provider would quote).
+Markets: the 300 biggest current reward pools among markets ending > 14 days out (the ones a liquidity provider would quote).
 Data: hourly price history (CLOB prices-history), last ~6 months.  Target: the next hour's absolute move |dp|, and
 a "jump" = |dp| >= 3c (enough to run through a quote v/3 from mid on a typical 4.5-6.5c max spread).
 Forecasts of next-hour |dp| per market, all using only past hours:
@@ -44,32 +44,41 @@ def get(url, **p):
     return None
 
 
-def markets():
-    out, cur = [], ""
+def markets(n=300):
+    """the n biggest current reward pools among markets ending > 14 days out: (cid, question, yes token)"""
+    rate, cur = {}, ""
     while True:
         r = get("https://clob.polymarket.com/rewards/markets/current", **({"next_cursor": cur} if cur else {}))
         if not r:
             break
-        out += [(float(x.get("total_daily_rate") or 0), x["condition_id"]) for x in r.get("data", [])]
+        rate.update({x["condition_id"]: float(x.get("total_daily_rate") or 0) for x in r.get("data", [])})
         cur = r.get("next_cursor")
         if not cur or cur == "LTE=" or not r.get("data"):
             break
-    return [c for _, c in sorted(out, reverse=True)[:600]]          # the 600 biggest pools
+    horizon, out, cur = datetime.now(timezone.utc) + timedelta(days=14), [], None
+    while True:
+        d = get("https://gamma-api.polymarket.com/events/keyset", active="true", closed="false", limit=500,
+                **({"after_cursor": cur} if cur else {}))
+        if not d:
+            break
+        for e in d.get("events", []):
+            for m in e.get("markets") or []:
+                end = m.get("endDate")
+                if m.get("conditionId") in rate and end and m.get("clobTokenIds") and \
+                        datetime.fromisoformat(end.replace("Z", "+00:00")) > horizon:
+                    out.append((rate[m["conditionId"]], m["conditionId"], m["question"], json.loads(m["clobTokenIds"])[0]))
+        cur = d.get("next_cursor")
+        if not cur or not d.get("events"):
+            break
+    return [x[1:] for x in sorted(out, reverse=True)[:n]]
 
 
-def history(cid):
-    m = get("https://gamma-api.polymarket.com/markets", condition_ids=cid)
-    if not m:
-        return None
-    m = m[0]
-    end = m.get("endDate")
-    if not end or datetime.fromisoformat(end.replace("Z", "+00:00")) < datetime.now(timezone.utc) + timedelta(days=14):
-        return None
-    tok = json.loads(m["clobTokenIds"])[0]
+def history(item):
+    cid, question, tok = item
     now, pts = int(time.time()), {}
-    for k in range(6):                                            # 6 x 30-day chunks
-        t1 = now - k * 30 * 86400
-        h = get("https://clob.polymarket.com/prices-history", market=tok, startTs=t1 - 30 * 86400, endTs=t1, fidelity=60)
+    for k in range(12):                                           # 12 x 15-day chunks (the API's maximum range)
+        t1 = now - k * 15 * 86400
+        h = get("https://clob.polymarket.com/prices-history", market=tok, startTs=t1 - 15 * 86400, endTs=t1, fidelity=60)
         for x in (h or {}).get("history", []):
             pts[int(x["t"])] = float(x["p"])
     if len(pts) < 24 * 45:
@@ -78,7 +87,7 @@ def history(cid):
     s.index = pd.to_datetime(s.index, unit="s", utc=True).floor("1h")
     s = s[~s.index.duplicated(keep="last")]
     s = s.reindex(pd.date_range(s.index[0], s.index[-1], freq="1h")).ffill()
-    return pd.DataFrame({"cid": cid, "question": m["question"], "t": s.index, "p": s.values})
+    return pd.DataFrame({"cid": cid, "question": question, "t": s.index, "p": s.values})
 
 
 def forecasts(g):
@@ -109,7 +118,7 @@ def main():
     path = f"{D}/history.parquet"
     if not os.path.exists(path):
         ids = markets()
-        print(len(ids), "rewarded markets", flush=True)
+        print(len(ids), "rewarded long-dated markets", flush=True)
         with ThreadPoolExecutor(6) as ex:
             H = [h for h in ex.map(history, ids) if h is not None]
         pd.concat(H, ignore_index=True).to_parquet(path)
@@ -129,8 +138,8 @@ def main():
         L.append(f"| {c} | {auc(T[c].values, T.jump.values):.3f} | {100 * caught:.1f}% | {mse:.3f} |")
     # per-market ranking: does PPC pick out the jumpy MARKETS (for market selection)?
     by = T.groupby("cid").agg(ppc=("ppc", "mean"), day=("day", "mean"), jumps=("jump", "mean"))
-    L += ["", f"Market-level: Spearman(mean forecast, jump rate) ppc {by.ppc.corr(by.jumps, method='spearman'):.3f}, "
-          f"day {by.day.corr(by.jumps, method='spearman'):.3f}", ""]
+    L += ["", f"Market-level: Spearman(mean forecast, jump rate) ppc {by.ppc.rank().corr(by.jumps.rank()):.3f}, "
+          f"day {by.day.rank().corr(by.jumps.rank()):.3f}", ""]
     open("../results/PM_JUMP.md", "w").write("\n".join(L))
     print("\n".join(L))
 
