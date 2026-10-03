@@ -198,6 +198,14 @@
   VERDICT: as designed, liquidity rewards do not beat fill losses. Paper runs restarted with realistic rules (tick
   grid, back-of-queue fills); old logs kept as live/pmlp*_v1_offgrid.jsonl.
 
+- 18:xx LADDER AT CREATION (results/PM_LADDER.md): +/-5 levels x 100 shares posted at each market's first price,
+  front of queue until each level's first fill, back afterwards. 20 markets (13 listed 2-4 days ago). Fill P&L
+  -$400/day vs rewards (upper bound) +$63/day -> net -$336/day; 17/20 markets lose. Ending inventory is one-sided
+  (price runs through the ladder and fills every level on the way). Front-of-queue fills = 156 of 574: priority is
+  used up fast. Closed. (The new_listing flag in that report is unreliable; the 2-4 day markets ARE new listings.)
+- 18:xx started live/pmgap.py: top-of-book every 3 s on 40 markets for 4 days, to test 'be first inside a
+  freshly widened spread'. 71% of snapshots 1-tick spread, ~10% 2-tick.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
