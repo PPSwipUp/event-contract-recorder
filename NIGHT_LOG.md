@@ -178,6 +178,12 @@
 - DECISION: paper-LP market filter excludes anything ending within 14 days (sports games, short crypto) because
   resolution jumps are where liquidity providers get run over. Revert: change horizon in pmlp.choose().
 
+- 16:xx PAPER LP variant 2 started: one tick from mid, 500 shares/side (live/pmlp_tight.jsonl), same 20 markets.
+  Snapshot sensitivity: 200 sh @ v/3 ~ $30/day; 500 sh @ 1 tick ~ $178/day (before fill losses).
+- 16:xx CAVEAT: Polymarket's published market_competitiveness does not match my book-snapshot competitor score
+  (corr 0.08, different scale; 8,177 markets in that feed, $56k/day). The paper reward accrual is an ESTIMATE of
+  the scoring; true earnings can only be confirmed with a real (small) account. Treat paper rewards as an upper bound.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
