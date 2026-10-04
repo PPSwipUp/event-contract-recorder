@@ -391,3 +391,7 @@
 - 41,198 events / 1,376 series. Buying 90-97c favourites at the ask 6 h before close: holdout -8.2c/contract, t -12 (train -9.7c).
 - Favourites win 82-89% vs 90-97% implied; buying the 3-10c longshot at its ask is ~0 (6h) / -1.7c (1h). Spread eats it both ways; no taker edge.
 - CPI test (PLAN_CPI) crashed on expiration_value '0.3%'; fixed, restarted 23:25.
+## 2026-10-04 23:30 — CPI vs Cleveland nowcast (PLAN_CPI): GATE FAIL
+- 45 releases (24 train / 21 holdout), 450 entries. Holdout +0.27c/contract, t 0.07. Market far sharper (Brier 0.059 vs model 0.111).
+- Placebo (last month's CPI) -9.1c, t -4.2, so the harness can tell good from bad; the nowcast just adds nothing over Kalshi's price.
+- 2021 events contributed no entries (no trades in the 24h-1h window via API); not investigated.
