@@ -380,3 +380,9 @@
 2. B: 15-min up/down with 1-min candles + Coinbase.
 3. C: Polymarket crypto up/down history.
 4. D: FX hourly ranges (Massive forex if free).
+
+## 2026-10-04 16:xx — Crypto-lead Phase 1: GATE FAIL
+- 3,948 windows scored. Holdout model Brier 0.1144 vs market 0.1086 (diff +0.0058, CI [+0.0041,+0.0077]) > 0.002 tolerance.
+- Train had model slightly better (-0.0031); holdout worse on 12/15 days. Per frozen plan: Phase 2 not built, line closed.
+- DECISION: HYPE source switched to Bybit spot (Hyperliquid 5,000-candle cap). Revert: hype() in backfill/cryptolead.py.
+- Bugs fixed on the way: missing school CA bundle, close_ts unit (us vs ns), uncapped retry back-off.
