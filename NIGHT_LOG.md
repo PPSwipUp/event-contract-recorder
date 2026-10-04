@@ -313,6 +313,14 @@
   (main or the 10 builder exchanges). Builder exchanges list pre-IPO perps (io:ANTH $3.7M/day, io:OAI, vntl:SPACEX)
   but those settle differently from Polymarket's valuation markets -> no clean pairing. Parked.
 
+- 11:xx CRYPTO ARB PER COIN, LIVE (~5.7 online hours): 104 sightings worth $270 as seen (one BTC glitch row);
+  confirmed $0.23 (BTC 0.10, ETH 0.12, HYPE 0.01, SOL/BNB 0, XRP none); catchable 1 s later $0.08 = ~$10/month if run
+  24/7. History (1-min candles) suggested $0.10-0.53/h per coin -> reading artefacts. Kalshi crypto arb CLOSED.
+- 11:xx LP SPEED (results/LP_SPEED.md, backfill/lpspeed.py): 3-s top-of-book recording (20 LP markets) + real trades,
+  join best bid/ask 500 shares, back-of-queue fills: refresh 60 s -> -$42.5 (9 fills), 15 s -> -$37.5 (7), 3 s ->
+  -$20 (4) over the window. Faster quoting halves fill losses but stays negative; only 4-9 fills (tiny sample) and
+  the 16.5 h window includes the 6.5 h curfew (per-day figures in the report understate by ~1.65x).
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
