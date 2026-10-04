@@ -7,6 +7,11 @@
 - In progress: alt-coin hourly ranges (SOL, XRP, DOGE).
 
 ## Needs human
+- BLOCKER (2026-10-04): JURISDICTION. Kalshi is open to US persons only (UK fails KYC; UK on its restricted list) and
+  Polymarket is close-only for UK users (no UK Gambling Commission licence). The user is in the UK, so NONE of the
+  prediction-market strategies here (range bot, executor, LP, arbs) can be traded legally from the UK. Sources are
+  secondary sites that agree with each other - verify on Kalshi's and Polymarket's own restricted-jurisdiction pages.
+  Do not use VPNs / other people's accounts to get around it (breaks the platforms' terms and KYC).
 - live/watcher.py now refuses to signal when the vol forecast has collapsed (frozen price feed). Review the
   one-line guard (min_sig) before relying on the watcher.
 - Market-making edge FAILED the realistic simulation (all scenarios lose; root cause = print-price fill assumption in
@@ -348,6 +353,13 @@
   fills, settlement at official result, conservative maker fee). NOTE: each loop takes ~90 s but credits 60 s of
   reward (understates rewards); capital ~ $100 x 223 markets. Verdict after a few days.
 - 13:xx live/rules.py running: 287k minutes of history per coin loaded; first signals at the next :15.
+
+- 13:xx KALSHI INCENTIVE VALIDATION: (1) all programmes were inside their windows (OK); (2) no per-account caps (OK);
+  (3) QUEUE ARTEFACT - in 82% of Rotten Tomatoes book sides the best price already holds > target (median 11,206 vs
+  1,000), so a back-of-queue order scores nothing: RT reward $104/h -> $26/h after fixing side_score(back=True);
+  (4) EMPTY-SIDE ARTEFACT - Kalshi's rules exclude any snapshot where either side is below the target size, so the
+  $225/h attributed to empty-side markets pays nothing; (5) ELIGIBILITY - the programme is for 'most regular U.S.
+  Kalshi members'; international users are excluded. Paper run (live/kxlip.py) stopped. Closed.
 
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is

@@ -36,11 +36,16 @@ def programs():
             return pd.DataFrame(rows)
 
 
-def side_score(levels, target, disc, ours):
-    """levels: [(price, size)] bids best first; returns (competitors' score, our score) with our order joined at best"""
+def side_score(levels, target, disc, ours, back=True):
+    """levels: [(price, size)] bids best first; returns (competitors' score, our score) with our order joined at the
+    best bid.  back=True: time priority, our order counts only after everyone already at that price (realistic);
+    back=False: our order counted first (optimistic upper bound)."""
     if not levels:
-        return 0.0, 0.0
-    lv = [(levels[0][0], levels[0][1] + ours, True)] + [(p, q, False) for p, q in levels[1:]]
+        return 0.0, float(ours)                                       # empty side: our order is the whole book
+    if back:
+        lv = [(levels[0][0], levels[0][1], False), (levels[0][0], ours, True)] + [(p, q, False) for p, q in levels[1:]]
+    else:
+        lv = [(levels[0][0], levels[0][1] + ours, True)] + [(p, q, False) for p, q in levels[1:]]
     cum, ref = 0.0, lv[-1][0]
     for p, q, _ in lv:
         cum += q
@@ -56,7 +61,9 @@ def side_score(levels, target, disc, ours):
         cum += take
         n = max(0, round((ref - p) * 100))
         w = disc ** n
-        if has_ours:
+        if has_ours and back:
+            mine += w * take
+        elif has_ours:
             mine += w * min(ours, take)
             comp += w * max(0.0, take - ours)
         else:
