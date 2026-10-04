@@ -321,6 +321,9 @@
   -$20 (4) over the window. Faster quoting halves fill losses but stays negative; only 4-9 fills (tiny sample) and
   the 16.5 h window includes the 6.5 h curfew (per-day figures in the report understate by ~1.65x).
 
+- 11:xx ALT-COIN ARB HISTORY done (arb.py, Aug-Sep 1-min candles), on-paper $/h at 10 contracts: BTC 0.16, ETH 0.15,
+  SOL 0.31, XRP 0.10, BNB 0.53, HYPE see results; all overstated by stale-quote reading (live confirmation ~$0.01/h).
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
@@ -332,7 +335,6 @@
 (pending)
 
 ## Left to do
-0. After 06:30: restart `python backfill/arb.py --pairs KXSOLE:KXSOLD,KXXRP:KXXRPD,KXBNB:KXBNBD,KXHYPE:KXHYPED`.
 1. A: collect SOL/XRP/DOGE range trades Jul-Sep 2026, run frozen rules.
 2. B: 15-min up/down with 1-min candles + Coinbase.
 3. C: Polymarket crypto up/down history.
