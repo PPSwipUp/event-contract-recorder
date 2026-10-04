@@ -395,3 +395,7 @@
 - 45 releases (24 train / 21 holdout), 450 entries. Holdout +0.27c/contract, t 0.07. Market far sharper (Brier 0.059 vs model 0.111).
 - Placebo (last month's CPI) -9.1c, t -4.2, so the harness can tell good from bad; the nowcast just adds nothing over Kalshi's price.
 - 2021 events contributed no entries (no trades in the 24h-1h window via API); not investigated.
+## 2026-10-04 23:42 — Polymarket LP follow-up (side-chat request)
+- pmlp + pmlp_tight alive, 14-day runs (to ~17 Oct). Plan frozen: results/PLAN_PMLP_CALM.md.
+- Polymarket US: has its own LIP (Kalshi-style Discount^ticks scoring, Target Size, Max Spread) + maker rebate 0.0125·C·p(1-p).
+- TODO 06:35: fill-by-fill analysis of pmlp_tight; build --calm flag + per-loop 14d/mid filter; launch _tight_calm.
