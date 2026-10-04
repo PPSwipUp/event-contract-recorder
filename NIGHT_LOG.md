@@ -324,6 +324,18 @@
 - 11:xx ALT-COIN ARB HISTORY done (arb.py, Aug-Sep 1-min candles), on-paper $/h at 10 contracts: BTC 0.16, ETH 0.15,
   SOL 0.31, XRP 0.10, BNB 0.53, HYPE see results; all overstated by stale-quote reading (live confirmation ~$0.01/h).
 
+- 12:xx LIVE RULE ENGINE (live/rules.py): computes the two FORWARD-TESTED rules exactly (reuses research.probs /
+  implied_mult / MARGIN / fee; quote 15 min after open; ppc fitted on completed hours; k_fixed, k_roll as in prep).
+  VALIDATED: replaying 2026-10-02 gives base BTC 0 / base ETH 1 / eth-rule 2 bets = the forward ledgers exactly.
+  Running signals-only (writes live/signals.jsonl + full inputs to rules_log.jsonl) so live decisions can be
+  audited against the daily forward ledger. Go-live = run live/executor.py --signals live/signals.jsonl --live
+  with the user's key (frozen plan results/PREREG_SCALEUP.md).
+- 12:xx PRE-BUILT ANALYSES: backfill/lptick.py (fill loss vs reaction time 0.1-60 s on tick data) - first 2.2 h:
+  4 fills, -$15.6/online h at >= 0.5 s, -$11.2 at 0.1 s (too few fills; verdict ~6-7 Oct).
+  backfill/gapstudy.py (first inside a widened spread) - first 19 h, 193 fills: 5-min mark-out +0.02c, 30-min
+  -0.44c (about zero before rewards); narrow gaps negative (-0.9 to -1.0c), very wide gaps (>10 ticks, n=18)
+  +5.7c - small post-hoc subgroup, not to be trusted until the full run (~7 Oct).
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
