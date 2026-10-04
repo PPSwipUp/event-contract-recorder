@@ -106,7 +106,7 @@ def load():
                 if t:
                     rows.append({"event": ev, "target": f"20{y}-{MON[mon]}", "ticker": m["ticker"], "K": float(m["floor_strike"]),
                                  "close": close, "side": side, "px": float(t[f"{side}_price_dollars"]), "count": float(t["count_fp"]),
-                                 "result": m["result"], "actual": float(m["expiration_value"]) if m.get("expiration_value") else np.nan})
+                                 "result": m["result"], "actual": float(m["expiration_value"].rstrip("%")) if m.get("expiration_value") else np.nan})
         print(ev, len(rows), flush=True)
     E = pd.DataFrame(rows)
     E.to_parquet(p)
