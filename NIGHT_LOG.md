@@ -298,6 +298,21 @@
   the outage), hourly loop replaced by a 06:35 alarm. Scanner per-hour rates must exclude the curfew.
   Deep crypto arb so far: 8 seen ($2.86), 0 confirmed when legs re-read together.
 
+## 2026-10-04
+- 06:36 resumed after curfew: all 8 live jobs reconnected at 06:30; alt-coin arb history download restarted.
+- DEEP CRYPTO ARB after ~10 live hours: 19 sightings worth $8.87, CONFIRMED (legs re-read together) $0.04,
+  CATCHABLE 1 s later $0.01. The old '~$1/h' sightings were almost all reading artefacts. Effectively closed for a
+  laptop; scanner left to finish its 48 h.
+- 1a CRYPTO VOL RISK PREMIUM (results/VRP.md): sell 30-day DVOL, variance-swap proxy, monthly entries. BTC 2025 +2.1
+  vol pts/month, 2026 +0.03; ETH 2025 -5.3, 2026 +2.1 (before ~1-2 pts of costs); never significant (best t 0.9);
+  worst months -14 to -46 pts. Closed.
+- 3a OVERNIGHT DRIFT (results/OVERNIGHT.md): SPY/QQQ/IWM buy close / sell open. Holdout year: all index gains came
+  overnight, but after 2 bp costs the strategy returns LESS than buy-and-hold (SPY 9.6% vs 13.7%, QQQ 15.5% vs
+  21.2%), t <= 1.7, flat in the train year. No edge over just holding. Closed.
+- 2a PM 'FDV above $X after launch' vs pre-market perps: none of the ~30 Polymarket FDV projects trades on Hyperliquid
+  (main or the 10 builder exchanges). Builder exchanges list pre-IPO perps (io:ANTH $3.7M/day, io:OAI, vntl:SPACEX)
+  but those settle differently from Polymarket's valuation markets -> no clean pairing. Parked.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.
