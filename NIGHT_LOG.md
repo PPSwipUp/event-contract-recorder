@@ -336,6 +336,19 @@
   -0.44c (about zero before rewards); narrow gaps negative (-0.9 to -1.0c), very wide gaps (>10 ticks, n=18)
   +5.7c - small post-hoc subgroup, not to be trusted until the full run (~7 Oct).
 
+- 13:xx LOW-ODDS QUEUE:
+  Kalshi tweet markets: KXELONTWEETS and all other tweet series have NO open markets -> nothing to test. Closed.
+  Polymarket 15-min up/down: skipped - the Kalshi 15-min version had no edge and PM's markets are $40-6k each
+  (no capacity even if an edge existed).
+  Kalshi LIQUIDITY INCENTIVES: scoring per help.kalshi.com (1-s snapshots, reference price at Target/5,
+  Discount^ticks) implemented + unit-tested (backfill/kalshilip.py, results/KALSHI_LIP.md). Snapshot reward share
+  for 100/side at best bid: NFL prop ladders ~20% (~$65-153/h per series), 15-min crypto-lead ~$133/h, Miami
+  hourly temperature ~$109/h, Rotten Tomatoes ~$90/h - rewards only, the same thin, informed markets as Polymarket.
+  Paper run started (live/kxlip.py: KXCRYPTOLEAD15M + KXTEMPMIAH + KXRT, 223 markets, 100/side, back-of-queue
+  fills, settlement at official result, conservative maker fee). NOTE: each loop takes ~90 s but credits 60 s of
+  reward (understates rewards); capital ~ $100 x 223 markets. Verdict after a few days.
+- 13:xx live/rules.py running: 287k minutes of history per coin loaded; first signals at the next :15.
+
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is
   unknown. Revert: change FILL in maker.py.

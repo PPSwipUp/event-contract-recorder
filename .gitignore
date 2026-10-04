@@ -23,3 +23,5 @@ live/kxcryptoarb.jsonl
 live/pmtick/
 live/signals.jsonl
 live/rules_log.jsonl
+live/kxlip_state.json
+live/kxlip.jsonl
