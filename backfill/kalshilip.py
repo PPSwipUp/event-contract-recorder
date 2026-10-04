@@ -71,6 +71,18 @@ def side_score(levels, target, disc, ours, back=True):
     return comp, mine
 
 
+def market_share(book, target, disc, ours):
+    """our share of one snapshot, or None if Kalshi would exclude it (either side's depth incl. ours < target)"""
+    if any(sum(q for _, q in lv) + ours < target for lv in book):
+        return None
+    comp = mine = 0.0
+    for lv in book:
+        c, m = side_score(lv, target, disc, ours)
+        comp += c
+        mine += m
+    return mine / (mine + comp) if mine + comp > 0 else 0.0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--size", type=float, default=100)

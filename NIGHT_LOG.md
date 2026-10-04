@@ -7,11 +7,9 @@
 - In progress: alt-coin hourly ranges (SOL, XRP, DOGE).
 
 ## Needs human
-- BLOCKER (2026-10-04): JURISDICTION. Kalshi is open to US persons only (UK fails KYC; UK on its restricted list) and
-  Polymarket is close-only for UK users (no UK Gambling Commission licence). The user is in the UK, so NONE of the
-  prediction-market strategies here (range bot, executor, LP, arbs) can be traded legally from the UK. Sources are
-  secondary sites that agree with each other - verify on Kalshi's and Polymarket's own restricted-jurisdiction pages.
-  Do not use VPNs / other people's accounts to get around it (breaks the platforms' terms and KYC).
+- JURISDICTION (resolved 2026-10-04): the user is a US resident, temporarily in the UK. Kalshi: usable as a US person,
+  but place trades from the US (it may block by location). Polymarket international bars US persons: Polymarket
+  ideas would need re-checking on Polymarket US (separate exchange). Never VPNs / other people's accounts.
 - live/watcher.py now refuses to signal when the vol forecast has collapsed (frozen price feed). Review the
   one-line guard (min_sig) before relying on the watcher.
 - Market-making edge FAILED the realistic simulation (all scenarios lose; root cause = print-price fill assumption in
@@ -360,6 +358,12 @@
   (4) EMPTY-SIDE ARTEFACT - Kalshi's rules exclude any snapshot where either side is below the target size, so the
   $225/h attributed to empty-side markets pays nothing; (5) ELIGIBILITY - the programme is for 'most regular U.S.
   Kalshi members'; international users are excluded. Paper run (live/kxlip.py) stopped. Closed.
+
+- 14:xx KALSHI INCENTIVES, CORRECTED (back of queue + two-sided exclusion, kalshilip.market_share): 5,833 active
+  programmes, pools $13.4k/h in total; 100/side in EVERY market -> $474/h rewards on ~$583k of quotes (gross, no fill
+  losses); top series per 100/side: crypto-lead 15m $74/h (40% of snapshots excluded), Miami temp $33/h (70%
+  excluded), NFL escalator/ladder props $10-32/h, Rotten Tomatoes $8/h. Paper run restarted with corrected scoring on
+  crypto-lead + Miami temp + NFL escalator (94 markets): first 2 loops +$4.59 rewards, 1 fill, net -$1.64.
 
 ## Decisions
 - DECISION: maker fills assumed = 25% (and 50%) of each real taker trade at that price; true queue position is

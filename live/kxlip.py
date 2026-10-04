@@ -2,7 +2,8 @@
 
 Every minute: take the active incentive programs, keep the series in --series, and for each market quote X
 contracts at the best YES bid and the best NO bid (joining both queues).
-  reward : Kalshi's published scoring (backfill/kalshilip.side_score: reference price at Target/5, Discount^ticks),
+  reward : Kalshi's published scoring (backfill/kalshilip.market_share: back of the queue, reference price at
+           Target/5, Discount^ticks; snapshots with either side below Target pay nothing),
            our share of the current snapshot x period reward x (60 s / period length)
   fills  : every public trade since the last minute that went strictly THROUGH our price fills our whole size at
            our price (back of the queue): a taker buying NO below 1 - our YES bid hits our YES bid, etc.
@@ -26,7 +27,7 @@ import pandas as pd
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "backfill"))
 import dohfix  # noqa: F401,E402
 from arbscan import kget  # noqa: E402
-from kalshilip import side_score  # noqa: E402
+from kalshilip import market_share  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -99,12 +100,9 @@ def main():
                 if not bk:
                     continue
                 hours = (pd.Timestamp(pr["end_date"]) - pd.Timestamp(pr["start_date"])).total_seconds() / 3600
-                comp = mine = 0.0
-                for levels in bk:
-                    c, m = side_score(levels, float(pr["target_size_fp"]), (pr.get("discount_factor_bps") or 10000) / 10000, a.size)
-                    comp += c; mine += m
-                if mine + comp > 0:
-                    st["reward"] += mine / (mine + comp) * pr["period_reward"] / 10000 * (60 / 3600) / max(hours, 1 / 60)
+                sh = market_share(bk, float(pr["target_size_fp"]), (pr.get("discount_factor_bps") or 10000) / 10000, a.size)
+                if sh:                                   # None = snapshot excluded (a side below target): no reward
+                    st["reward"] += sh * pr["period_reward"] / 10000 * (60 / 3600) / max(hours, 1 / 60)
                 pos["yes_bid"] = bk[0][0][0] if bk[0] and abs(pos["inv"]) < 2 * a.size else None
                 pos["no_bid"] = bk[1][0][0] if bk[1] and abs(pos["inv"]) < 2 * a.size else None
                 pos["mid"] = (bk[0][0][0] + 1 - bk[1][0][0]) / 2 if bk[0] and bk[1] else pos.get("mid")
