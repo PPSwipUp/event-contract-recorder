@@ -45,6 +45,8 @@ def programs(game):
             q["pageToken"] = tok
         d = jget("https://api.prod.polymarketexchange.com/v1/incentives", **q) or {}
         for p in d.get("programs", []):
+            if not p.get("eventStartTime"):                                  # futures: no fixed start, no day-of window
+                continue
             for t in p["timePeriods"]:
                 rows.append({"slug": p["marketSlug"], "start": pd.Timestamp(p["eventStartTime"]).timestamp(), "program": t["programId"],
                              "period": t["period"], "pool": t["rewardPool"], "target": t["targetSize"], "disc": t["discountFactor"],
