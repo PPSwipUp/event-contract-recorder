@@ -11,6 +11,10 @@ Each minute (Polymarket samples the book once a minute), for each chosen market:
   P&L   : cash + inventory marked at mid; rewards counted separately.  Maker rebates are ignored (conservative).
 Markets: the highest daily pools among those ending more than 14 days out with mid in [0.10, 0.90] and both books
 quoted (long-dated questions; no live sports games, no short crypto contracts).  State survives restarts.
+Every fill is appended to pmlp<tag>_fills.jsonl (market, time, side, price, mid).
+--calm (results/PLAN_PMLP_CALM.md): every loop, stop quoting a market whose end is <= 14 days away or whose mid is
+outside [0.10, 0.90]; and pull quotes while its trailing-24h jumpiness (mean |hourly price change| over the last 24 h,
+refreshed hourly) is >= the frozen threshold in backfill/data_local/pmjump/calm_threshold.txt.
   python live/pmlp.py --markets 20 --size 200
 """
 from __future__ import annotations
@@ -93,6 +97,15 @@ def book(token):
             "asks": sorted((float(x["price"]), float(x["size"])) for x in b.get("asks", []))}
 
 
+def jumpiness(token):
+    """mean |hourly YES price change| over the last 24 hours (the "day" predictor in results/PM_JUMP.md)"""
+    h = (jget(f"{CLOB}/prices-history", market=token, interval="1d", fidelity=60) or {}).get("history", [])
+    p = [x["p"] for x in sorted(h, key=lambda x: x["t"])][-25:]
+    if len(p) < 7:                                                   # pmjump used min_periods=6 changes
+        return None
+    return sum(abs(b - a) for a, b in zip(p, p[1:])) / (len(p) - 1)
+
+
 def new_trades(cid, since):
     """taker trades after `since` (unix s), as (ts, YES price, taker bought YES?)"""
     j = jget(f"{DATA}/trades", market=cid, limit=500, takerOnly="true") or []
@@ -113,9 +126,19 @@ def main():
     ap.add_argument("--hours", type=float, default=24 * 14)
     ap.add_argument("--dist", default="third", choices=["third", "tick"], help="quote v/3 or one tick from mid")
     ap.add_argument("--tag", default="", help="suffix for state/log files (parallel paper runs)")
+    ap.add_argument("--calm", action="store_true", help="per-loop 14-day/mid filter + pull when jumpy (PLAN_PMLP_CALM)")
     a = ap.parse_args()
     state_path = os.path.join(HERE, f"pmlp{a.tag}_state.json")
     log_path = os.path.join(HERE, f"pmlp{a.tag}.jsonl")
+    fills_path = os.path.join(HERE, f"pmlp{a.tag}_fills.jsonl")
+    thr = float(open(os.path.join(HERE, "..", "backfill", "data_local", "pmjump", "calm_threshold.txt")).read())
+    jump, jump_t = {}, {}
+
+    def log_fill(m, p, ts, side, px, trade_px):
+        with open(fills_path, "a") as f:
+            f.write(json.dumps({"logged": datetime.now(timezone.utc).isoformat(timespec="seconds"), "trade_ts": ts,
+                                "cid": m["cid"], "token": m["token"], "question": m["question"], "side": side, "price": px,
+                                "size": a.size, "mid": p["mid"], "trade_yes_px": trade_px, "inv_after": p["inv"]}) + "\n")
     try:
         st = json.load(open(state_path))
     except (OSError, ValueError):
@@ -143,9 +166,11 @@ def main():
                     # back of the queue: only prints strictly THROUGH our price reach us (60-day replay showed the
                     # at-price "front of queue" rule is fantasy when 20k-2M shares already sit at the touch)
                     if p["bid"] is not None and not bought_yes and px < p["bid"] - 1e-9:
-                        p["inv"] += a.size; p["cash"] -= a.size * p["bid"]; p["fills"] += 1; p["bid"] = None
+                        p["inv"] += a.size; p["cash"] -= a.size * p["bid"]; p["fills"] += 1
+                        log_fill(m, p, ts, "buy_yes", p["bid"], px); p["bid"] = None
                     if p["ask"] is not None and bought_yes and px > p["ask"] + 1e-9:
-                        p["inv"] -= a.size; p["cash"] += a.size * p["ask"]; p["fills"] += 1; p["ask"] = None
+                        p["inv"] -= a.size; p["cash"] += a.size * p["ask"]; p["fills"] += 1
+                        log_fill(m, p, ts, "sell_yes", p["ask"], px); p["ask"] = None
                 if tr:
                     p["last"] = max(ts for ts, _, _ in tr)
                 # 2) fresh book -> new quotes and this sample's reward
@@ -154,6 +179,16 @@ def main():
                     p["bid"] = p["ask"] = None
                     continue
                 mid = (b["bids"][0][0] + b["asks"][0][0]) / 2
+                if a.calm:
+                    if time.time() - jump_t.get(m["cid"], 0) > 3600:
+                        jump[m["cid"]], jump_t[m["cid"]] = jumpiness(m["token"]), time.time()
+                    end = datetime.fromisoformat(m["end"].replace("Z", "+00:00"))
+                    p["pulled"] = (end - datetime.now(timezone.utc) <= timedelta(days=14) or not 0.10 <= mid <= 0.90
+                                   or (jump[m["cid"]] or 0) >= thr)
+                    if p["pulled"]:
+                        p["mid"], p["bid"], p["ask"] = mid, None, None
+                        p["pulled_min"] = p.get("pulled_min", 0) + 1
+                        continue
                 v, tick = m["v"], m["tick"]
                 d = tick if a.dist == "tick" else max(tick, math.ceil(v / 3 / 100 / tick) * tick)   # dollars from mid
                 p["mid"] = mid
@@ -183,6 +218,8 @@ def main():
                "mtm": round(sum(p["cash"] + p["inv"] * (p["mid"] or 0) for p in st["pos"].values()), 2),
                "fills": sum(p["fills"] for p in st["pos"].values()),
                "gross_inventory_$": round(sum(abs(p["inv"]) * (p["mid"] or 0) for p in st["pos"].values()), 2)}
+        if a.calm:
+            tot["pulled_now"] = sum(bool(p.get("pulled")) for p in st["pos"].values())
         tot["net"] = round(tot["reward"] + tot["mtm"], 2)
         with open(log_path, "a") as f:
             f.write(json.dumps(tot) + "\n")
