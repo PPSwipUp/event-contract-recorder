@@ -10,7 +10,10 @@
                       "dip / below / drop" reversed.
 Each leg at its best ask (NO ask = 1 - best YES bid; the YES and NO books are one mirrored book), size = smaller
 best-ask size, Polymarket taker fee rate*p*(1-p) per share from the market's own fee schedule (0 if fees are off).
-Logs every package with locked profit > 0 to pmevarb.jsonl.
+Logs every package with locked profit > 0 to pmevarb<tag>.jsonl.
+--confirm: each positive package's legs are re-read in ONE /books request immediately ("confirmed" = still positive
+at a single instant) and again 1 s later ("catchable"); both results are logged with the hit.  (Without it, a
+scan reads ~235k books over ~200 s in token-id order, so the legs of one event can be read minutes apart.)
   python live/pmevarb.py --hours 48 --pause 300
 """
 from __future__ import annotations
@@ -74,6 +77,12 @@ def tops(tokens):
             bb, ba = max(bids, default=(None, 0)), min(asks, default=(None, 0))
             out[b["asset_id"]] = (bb[0], bb[1], ba[0], ba[1])
     return out
+
+
+def recheck(legs_fn, ms, pay):
+    """re-read all legs in one request: (edge, size) or None"""
+    Q = tops([json.loads(m["clobTokenIds"])[0] for m in ms])
+    return package([f(m, Q) for f, m in zip(legs_fn, ms)], pay)
 
 
 def rate(m):
@@ -143,8 +152,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--hours", type=float, default=48)
     ap.add_argument("--pause", type=float, default=300)
+    ap.add_argument("--tag", default="")
+    ap.add_argument("--confirm", action="store_true")
     a = ap.parse_args()
-    out = os.path.join(HERE, "pmevarb.jsonl")
+    out = os.path.join(HERE, f"pmevarb{a.tag}.jsonl")
     stop, scans = time.time() + 3600 * a.hours, 0
     while time.time() < stop:
         t0 = time.time()
@@ -157,12 +168,23 @@ def main():
                                               ("ALL_YES", [legs_yes(m, Q) for m in ms], 1, False)):
                     r = package(legs, pay)
                     if r:
-                        hits.append({"event": e.get("slug"), "kind": kind, "n": len(ms), "safe": safe, "edge_c": r[0], "size": r[1]})
+                        h = {"event": e.get("slug"), "kind": kind, "n": len(ms), "safe": safe, "edge_c": r[0], "size": r[1]}
+                        if a.confirm and safe:
+                            fn = [legs_no] * len(ms)
+                            h["confirmed"] = recheck(fn, ms, pay)
+                            time.sleep(1)
+                            h["catchable"] = recheck(fn, ms, pay)
+                        hits.append(h)
             for implied, implier in ladders(ms):
                 r = package([legs_yes(implied, Q), legs_no(implier, Q)], 1)
                 if r:
-                    hits.append({"event": e.get("slug"), "kind": "LADDER", "n": 2, "safe": True, "edge_c": r[0], "size": r[1],
-                                 "legs": [implied["question"][:70], implier["question"][:70]]})
+                    h = {"event": e.get("slug"), "kind": "LADDER", "n": 2, "safe": True, "edge_c": r[0], "size": r[1],
+                         "legs": [implied["question"][:70], implier["question"][:70]]}
+                    if a.confirm:
+                        h["confirmed"] = recheck([legs_yes, legs_no], [implied, implier], 1)
+                        time.sleep(1)
+                        h["catchable"] = recheck([legs_yes, legs_no], [implied, implier], 1)
+                    hits.append(h)
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
         with open(out, "a") as f:
             for h in hits:
