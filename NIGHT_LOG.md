@@ -413,3 +413,8 @@
 - pmevarb (Polymarket intl): 56 'safe' packages, $542 headline, almost all ALL_NO on LIVE soccer 1X2 markets lasting
   1-3 scans with 14-75c edges = sequential-book-read artefacts during live play (no same-instant re-read). Not
   credible, and Polymarket intl is closed to the US-resident user anyway. Closed.
+## 2026-10-05 18:40 — pmevarb REOPENED (user request: outputs looked real)
+- Trade tape around top 6 hits: each sits ~1.5-2 min after a goal (e.g. De Graafschap 0.80->0.39, draw 0.20->0.54 at -88 s);
+  the scan reads ~235k books over ~200 s in token-id order, so legs of one match are read before/after the goal.
+- Forward test: pmevarb.py --confirm (same-instant re-read of every hit's legs + 1 s later), run _v2, 72 h.
+  Verdict = confirmed/catchable $, not headline $.
