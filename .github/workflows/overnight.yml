@@ -1,0 +1,84 @@
+name: overnight
+# Runs the laptop's live recorders while the school Wi-Fi is off (00:00-06:30 UK).
+# mode=smoke: preflight + 3 minutes of recording + push, to prove the night run will work.
+# mode=night: preflight, then record until `until_utc`, checkpointing data to the `overnight-data` branch every
+# 20 minutes; a job stops at 340 minutes (GitHub's limit is 360) and starts the next one itself if time remains.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: smoke or night
+        default: smoke
+      until_utc:
+        description: stop time, e.g. 2026-10-06T05:35
+        default: ""
+      nyy_game:
+        description: Polymarket US game to record day-of books for
+        default: mlb-nyy-tb-2026-10-05
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: overnight
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q requests pandas pyarrow certifi
+      - name: preflight (fails the run if any source is unreachable)
+        id: preflight
+        working-directory: live
+        run: python ghpreflight.py "${{ inputs.nyy_game }}"
+      - name: record
+        env:
+          MODE: ${{ inputs.mode }}
+          UNTIL: ${{ inputs.until_utc }}
+          GAME: ${{ inputs.nyy_game }}
+        run: |
+          set +e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          start=$(date +%s)
+          if [ "$MODE" = smoke ]; then end=$(( start + 180 )); else
+            end=$(date -u -d "$UNTIL" +%s); cap=$(( start + 340 * 60 )); [ "$end" -gt "$cap" ] && end=$cap; fi
+          hours=$(python -c "print(max(0.05, ($end - $start) / 3600))")
+          cd live
+          python -W ignore -u pmusrec.py --games "$GAME" --every 30 > pmusrec_gh.log 2>&1 &
+          python -W ignore -u soccerlive.py --venue intl --hours "$hours" > soccerlive_intl_gh.log 2>&1 &
+          python -W ignore -u soccerlive.py --venue us --hours "$hours" > soccerlive_us_gh.log 2>&1 &
+          cd ..
+          dest="gh/$(date -u +%F)/run-${{ github.run_id }}"
+          git fetch -q origin overnight-data && git worktree add -q store origin/overnight-data \
+            || { git worktree add -q --detach store && git -C store checkout -q --orphan overnight-data && git -C store rm -rq . || true; }
+          checkpoint() {
+            mkdir -p "store/$dest"
+            cp live/*_gh.log "store/$dest/" 2>/dev/null || true
+            cp live/soccerlive_*.jsonl "store/$dest/" 2>/dev/null || true
+            mkdir -p "store/$dest/pmusrec" && cp live/pmusrec/* "store/$dest/pmusrec/" 2>/dev/null || true
+            git -C store add -A
+            git -C store commit -q -m "overnight $1 $(date -u +%FT%TZ)" || return 0
+            for i in 1 2 3; do git -C store push -q origin HEAD:overnight-data && return 0; git -C store pull -q --rebase origin overnight-data || true; sleep 5; done
+            echo "::warning::push failed"
+          }
+          while [ "$(date +%s)" -lt "$end" ]; do
+            sleep $(( end - $(date +%s) < 1200 ? end - $(date +%s) : 1200 ))
+            checkpoint "${MODE}"
+          done
+          pkill -f pmusrec.py || true; pkill -f soccerlive.py || true
+          sleep 2; checkpoint "${MODE}-final"
+          tail -3 live/*_gh.log
+      - name: start the next job if the night is not over
+        if: ${{ !cancelled() && inputs.mode == 'night' && steps.preflight.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          left=$(( $(date -u -d "${{ inputs.until_utc }}" +%s) - $(date +%s) ))
+          if [ "$left" -gt 600 ]; then
+            gh workflow run overnight.yml --ref main -f mode=night -f until_utc="${{ inputs.until_utc }}" -f nyy_game="${{ inputs.nyy_game }}"
+          fi
