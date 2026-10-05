@@ -10,3 +10,12 @@
 22:49:23 poll 901: 18 live matches, 54 books, 0.2s
 23:00:12 poll 1201: 18 live matches, 54 books, 0.2s
 23:11:03 poll 1501: 18 live matches, 54 books, 0.2s
+23:18:40 arg-vel-pla-2026-10-05 BUY_ALL 0.489 c x 5.0 -> 1 s later: [0.435, 5.0]
+23:18:42 arg-vel-pla-2026-10-05 BUY_ALL 0.435 c x 5.0 -> 1 s later: None
+23:21:04 poll 1801: 18 live matches, 54 books, 0.2s
+23:31:53 poll 2101: 15 live matches, 45 books, 0.2s
+23:34:24 conl-mart-slv-2026-10-05 BUY_ALL 0.18 c x 12.0 -> 1 s later: None
+23:35:24 arg-est-gye-2026-10-05 BUY_ALL 5.395 c x 14.4 -> 1 s later: [5.395, 14.4]
+23:35:34 arg-est-gye-2026-10-05 BUY_ALL 0.3 c x 24.0 -> 1 s later: [0.3, 24.0]
+23:35:36 arg-est-gye-2026-10-05 BUY_ALL 0.3 c x 24.0 -> 1 s later: [0.3, 24.0]
+23:36:04 conl-mart-slv-2026-10-05 BUY_ALL 0.215 c x 8.07 -> 1 s later: None
