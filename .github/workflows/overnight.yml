@@ -19,7 +19,7 @@ permissions:
   contents: write
   actions: write
 concurrency:
-  group: overnight
+  group: overnight-${{ inputs.mode }}   # one pending run per group: a smoke test must not cancel a queued night run
   cancel-in-progress: false
 jobs:
   run:
