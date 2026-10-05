@@ -418,3 +418,9 @@
   the scan reads ~235k books over ~200 s in token-id order, so legs of one match are read before/after the goal.
 - Forward test: pmevarb.py --confirm (same-instant re-read of every hit's legs + 1 s later), run _v2, 72 h.
   Verdict = confirmed/catchable $, not headline $.
+## 2026-10-05 22:43 — Live soccer same-instant gaps (soccerlive intl, first evening)
+- ~6,300 polls (2 s) over 7-12 live matches. 46 same-instant positive 1X2 packages (24 BUY_ALL, 22 SELL_ALL) in 7 matches.
+- Edge median 0.9c (90th pct 4.1c, max 16.4c), size median 20 (max 643). Headline $48; still there 1 s later 26/46 = $20
+  (overlapping repeats of the same gap, so <$20 distinct). Largest: ITA-TUR min 24 BUY_ALL 6.4c x 208 after 1 s = $13.
+- pmevarb_v2 (same-instant confirm): 16 distinct safe packages, max confirmed $3.31, ~$7.6 total; v1's $542 was staggered reads.
+- Verdict so far: same-instant gaps are REAL but small (~$10-20/evening on intl, before competition/leg risk). PM US soccer from 9-10 Oct decides relevance.
