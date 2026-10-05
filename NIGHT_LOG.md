@@ -408,3 +408,8 @@
 - 40,949 active liquidity programs. Pools are SHARED across a program's markets (rewards page), NOT per market: first survey's $40k/h was that artefact.
 - Today's MLB wild-card games: day-of (6 h pre-game) pools $1,525/game across ~300 markets (~$254/h total per game); live $5,100/game.
 - live/pmusrec.py recording all books every 30 s in today's day-of windows (CWS-CLE 15-21 UTC, NYY-TB 18-00 UTC; curfew cuts last hour).
+## 2026-10-05 18:30 — Exclusive-event arb scanners (48 h, end ~19:10 BST): CLOSED
+- kxevarb (Kalshi, ~4,400 exclusive events/scan): 4 safe ALL_NO packages, $0.20 total in 48 h. Dead.
+- pmevarb (Polymarket intl): 56 'safe' packages, $542 headline, almost all ALL_NO on LIVE soccer 1X2 markets lasting
+  1-3 scans with 14-75c edges = sequential-book-read artefacts during live play (no same-instant re-read). Not
+  credible, and Polymarket intl is closed to the US-resident user anyway. Closed.
