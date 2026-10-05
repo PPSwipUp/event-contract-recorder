@@ -403,3 +403,8 @@
 - pmlp + pmlp_tight survived curfew (resumed 05:30 UTC). Restarted 05:37 UTC with per-fill logging (same state; NOTE restart reset their 336 h clocks, so they now end ~19 Oct).
 - Launched pmlp_tight_calm (--calm, same 20 markets as _tight, 312 h -> ~18 Oct). 2/20 markets already pulled by the 14d/mid filter (Israel 0.05, Indiana 0.095).
 - backfill/pmfills.py -> results/PM_FILLS_TIGHT.md. 10 old fills reconstructed: +$65 marked; $70 of it is ONE short in "Israel accuses Iran" (mid fell to 0.05, now outside the 0.10-0.90 rule). 4 markets show +$2.50 = half-tick mark at mid, not realised profit.
+## 2026-10-05 ~11:30 — Polymarket US LIP check
+- Public, no account, works from UK: incentives list (api.prod.polymarketexchange.com/v1/incentives) + books (gateway.polymarket.us). No public trade feed (fills only via book crossing).
+- 40,949 active liquidity programs. Pools are SHARED across a program's markets (rewards page), NOT per market: first survey's $40k/h was that artefact.
+- Today's MLB wild-card games: day-of (6 h pre-game) pools $1,525/game across ~300 markets (~$254/h total per game); live $5,100/game.
+- live/pmusrec.py recording all books every 30 s in today's day-of windows (CWS-CLE 15-21 UTC, NYY-TB 18-00 UTC; curfew cuts last hour).
