@@ -1,0 +1,51 @@
+name: sweep
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        default: backfill-2026-09-30
+permissions:
+  contents: write
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pandas numpy pyarrow requests tabulate ppc-forecaster
+      - name: do older months have a trade record? (Jan-Jul)
+        working-directory: backfill
+        run: |
+          python - <<'PY' | tee ../trade_history.txt
+          from datetime import datetime, timezone
+          from collect import K, event_ticker, get, markets_of
+          for series in ("KXBTC", "KXETH"):
+              for month in range(1, 8):
+                  close = datetime(2026, month, 15, 16, tzinfo=timezone.utc)
+                  ev = event_ticker(series, close); ms = markets_of(series, ev)
+                  n = {}
+                  for base in ("markets/trades", "historical/trades"):
+                      tot = 0
+                      for m in ms[:200]:
+                          d = get(f"{K}/{base}", ticker=m["ticker"], limit=1000) or {}
+                          tot += len(d.get("trades", []))
+                      n[base] = tot
+                  print(series, ev, "markets", len(ms), "trades:", n, flush=True)
+          PY
+      - name: data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "${{ inputs.release }}" -D rel && mkdir out && tar xf rel/*.tar -C out
+      - run: python sweep.py --data ../out --out ../results/SWEEP.md
+        working-directory: backfill
+      - name: publish
+        run: |
+          { echo; echo "## Trade records for older months (15th of each month, 12pm ET event)"; echo; echo '```'; cat trade_history.txt; echo '```'; } >> results/SWEEP.md
+          cat results/SWEEP.md >> "$GITHUB_STEP_SUMMARY"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/SWEEP.md results/sweep_all.csv
+          git commit -q -m "sweep results $(date -u +%F)" && git pull -q --rebase && git push -q || true

@@ -1,0 +1,60 @@
+name: holdout
+# Jan-Jul 2026 holdout from Kalshi's archived trades (backfill/tradebt.py): one job per month, then evaluate.
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: holdout
+  cancel-in-progress: true
+jobs:
+  month:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 7
+      matrix:
+        m:
+          - {start: "2026-01-01", end: "2026-02-01"}
+          - {start: "2026-02-01", end: "2026-03-01"}
+          - {start: "2026-03-01", end: "2026-04-01"}
+          - {start: "2026-04-01", end: "2026-05-01"}
+          - {start: "2026-05-01", end: "2026-06-01"}
+          - {start: "2026-06-01", end: "2026-07-01"}
+          - {start: "2026-07-01", end: "2026-08-01"}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pandas numpy pyarrow requests tabulate ppc-forecaster
+      - run: python tradebt.py collect --start "${{ matrix.m.start }}" --end "${{ matrix.m.end }}" --out ../chunk
+        working-directory: backfill
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trades-${{ matrix.m.start }}
+          path: chunk/trades.parquet
+  evaluate:
+    needs: month
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pandas numpy pyarrow requests tabulate ppc-forecaster
+      - uses: actions/download-artifact@v4
+        with:
+          path: chunks
+      - run: python tradebt.py evaluate --chunks ../chunks --out ../results/HOLDOUT_JAN_JUL.md
+        working-directory: backfill
+      - name: publish
+        run: |
+          cat results/HOLDOUT_JAN_JUL.md >> "$GITHUB_STEP_SUMMARY"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/HOLDOUT_JAN_JUL.md
+          git commit -q -m "Jan-Jul holdout $(date -u +%F)" && git pull -q --rebase && git push -q || true

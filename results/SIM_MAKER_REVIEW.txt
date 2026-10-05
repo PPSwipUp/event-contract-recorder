@@ -1,0 +1,213 @@
+===== confirmed 15
+
+[c0] critical | crash/wrong numbers either way | lookahead | simulate() crashes before it can produce any result: the order timestamps lose their UTC timezone, so the trade-to-order merge fails
+   loc: backfill/simmaker.py:118 ("tau": Q.tau.values), crash raised at line 126 (Tm.merge(O, on=[ticker, event, tau]))
+   scenario: Q.tau is datetime64[s, UTC]. Calling .values on a tz-aware Series returns a naive numpy datetime64 array, so O.tau, and O.live_from / O.live_to with it, become naive. Tm.tau at line 125 comes from the tz-aware T.t. I ran simulate() on the local KXBTC 2026-W31 data with a placeholder p, using the project venv (pandas 3.0.6). It failed with: ValueError: You are trying to merge on datetime64[us, UTC] and datetime64[s] columns for key 'tau'. Pandas 2.x behaves the same way. As written, main() writes no SIM_MAKER.md at all. In a patched copy with the one-line fix below, the run completed: 791 fills at lat=2 and 780 at lat=10, and every fill falls inside its order's [tau+lat, tau+60+lat) window. Look-ahead checks that came out clean: (a) Kalshi candles are end-labelled. Trades in the first 5 s after a minute boundary match the bid/ask at the previous boundary 50-59% of the time, against 11-18% for the next boundary, so the quote at tau is the book at tau. (b) ppc Forecaster is prequential. Perturbing y[2000:] leaves auto_h1[:2000] unchanged and changes row 2000, so row t holds the forecast for t+1, and S.ppc after shift(1) is known at the start of the hour. (c) minute.reindex(tau-1min) g
+   fix: backfill/simmaker.py line 118: change `"tau": Q.tau.values` to `"tau": Q.tau.array`, which keeps the tz-aware UTC dtype. Do not use .to_numpy(), because it also drops the timezone. Nothing else needs to change: live_from/live_to (lines 121-122) and the merge (line 126) then work on tz-aware timestamps.
+
+[c1] critical | crash/wrong numbers either way | matching | simulate() crashes before producing any result: O.tau loses its UTC timezone, so the trade merge raises
+   loc: backfill/simmaker.py:118 ("tau": Q.tau.values), raises at :126 (Tm.merge(O, on=["ticker","event","tau"]))
+   scenario: Q.tau is tz-aware (datetime64[s, UTC], line 72). Series.values returns a tz-NAIVE numpy datetime64 array, so O.tau, O.live_from and O.live_to are naive. Tm.tau at line 125 is tz-aware, because it comes from T.t (UTC). Reproduced by calling simmaker.simulate on the real week 31-32 tape with the project venv (pandas 3.0.6): 'ValueError: You are trying to merge on datetime64[us, UTC] and datetime64[s] columns for key tau'. Neither main() nor any row of SIM_MAKER.md can run. If the merge were made to pass by stripping tz on one side only, line 127's Tm.t >= Tm.live_from would then fail with the same mismatch.
+   fix: backfill/simmaker.py line 118: change "tau": Q.tau.values to "tau": Q.tau.array. This keeps the timezone, so O.tau, live_from and live_to stay datetime64[..., UTC] and match Tm.tau/Tm.t. Do not use .to_numpy(), which returns an object array. Equivalent alternative: build O with index=Q.index and pass "tau": Q.tau.
+
+[c2] major | crash/wrong numbers either way | matching | Resting orders are never filled when the real book crosses them (bid rises to/through our ask, or ask falls to/through our bid)
+   loc: backfill/simmaker.py:129-131 (only same-side taker prints can fill us); next-candle data is dropped by the filter at load():73; intra-minute highs/lows are discarded at arb.py:42 / simdata.py:60-61
+   scenario: Our sell-YES rests at 0.40 from tau+2s to tau+62s. BTC jumps and real makers reprice, so either the candle at tau+60 shows best bid 0.45, or a taker SELLS YES into a real bid at 0.43 inside our window. A book that contains our 0.40 ask cannot hold a 0.43-0.45 bid: that bid would have executed against us, or its owner would simply lift our stale 0.40. The sim only matches taker=='yes' prints with y >= a, so the order is left unfilled or partly filled. Measured on the real W31-W32 tape (212 hours, 102,826 trades, BTC+ETH). Quoting was model-free because Coinbase/vol data isn't local; the model's 8c-margin orders mostly rest behind the touch, so I used proxies resting d cents behind it. Script: scratchpad marg.py. Caps off, 1c-inside quoting: coded fills were 176.6k contracts at -2.34c each; missed crossing fills were 282.6k contracts at -3.92c (-$11.1k). Orders resting 2/5/8c behind the touch: missed 161k/67k/34k vs coded 106k/56k/34k, at -3.9/-3.4/-1.6c. So roughly half of the fills a real resting order would get are absent, and they are the adverse ones. With the coded POS=100 cap, the headline $ moves either way, because these earlier fills use up the cap before later pick-offs: 1
+   fix: 1) backfill/simmaker.py load(): compute the next minute's book BEFORE the line-73 window filter, so the last order of the hour still has its next candle. Insert after line 72 (Q["tau"] = ...):
+    Q = Q.sort_values(["ticker", "tau"])
+    Q["bid1"] = Q.groupby("ticker").bid.shift(-1)     # best bid at tau+60 (end of the next minute, still inside our live window)
+    Q["ask1"] = Q.groupby("ticker").ask.shift(-1)
+
+2) simulate(): carry these into O (line 118-120 dict):
+    ..., "p": Q.p.values, "bid1": Q.bid1.values, "ask1": Q.ask1.values})
+   (Also keep tau tz-aware, otherwise line 126 crashes on pandas 3: build O from Q.tau.reset_index(drop=True), not Q.tau.values.)
+
+3) simulate(): replace line 131 with crossing-aware candidates. The existing loop then fills whatever is left at OUR price:
+    x_s = (Tm.taker == "no") & np.isfinite(Tm.sell) & (Tm.yes >= Tm.sell - 1e-9)   # real bid at/through our ask -> it crossed us
+    x_b = (Tm.taker == "yes") & np.isfinite(Tm.buy) & (Tm.yes <= Tm.buy + 1e-9)   # real ask at/through our bid
+    nxt = O.assign(t=O.tau + pd.Timedelta(seconds=60), count=np.inf)
+    C = pd.concat([Tm[hit_s].assign(side="sell", px=lambda d: d.sell),
+                   Tm[hit_b].assign(side="buy", px=lambda d: d.buy),
+                   Tm[x_s].assign(side="sell", px=lambda d: d.sell, count=np.inf),
+                   Tm[x_b].assign(side="buy", px=lambda d: d.buy, count=np.inf),
+                   nxt[np.isfinite(nxt.sell) & (nxt.bid1 >= nxt.sell - 1e-9)].assign(side="sell", px=lambda d: d.sell),
+                   nxt[np.isfinite(nxt.buy) & (nxt.ask1 <= nxt.buy + 1e-9)].assign(side="buy", px=lambda d: d.buy)])
+    C = C.sort_values("t")
+   count=np.inf is the stale-quote pick-off (upper bound). For a lower-bound sensitivity row, keep the print's own count on x_s/x_b. The candle-cross rows have no size information, so they stay at full remaining size.
+
+4) Optional, for better fidelity: have simdata/arb.candles also save the per-minute yes_bid high and yes_ask low. Use those instead of the close for the next-candle cross test, to catch crossings that reverted before the minute ended.
+
+[c3] minor | makes results too optimistic | matching | Stale-quote pick-offs are sized by the real print, not by our resting order
+   loc: backfill/simmaker.py:140 (n = min(o_rem, p_rem, e_rem, r.count)) applied to prints far through our price
+   scenario: 34% of coded fill contracts (60.6k of 176.6k, 1c-inside quoting, caps off) come from prints at least 3c through our price, and they lose -6.7c each. By then the market had repriced past our quote, which can be up to 62s old. A print's count is only what that taker matched against the REAL book at price y; with our order 3c+ cheaper, the same taker (limit >= y) or any sniper would take our whole remaining size. Example: our sell of 25 @0.40, real ask now 0.46, a 4-lot prints at 0.46. The sim fills 4; a real stale 0.40 ask loses all 25. Upper-bound check (full remaining size on prints >=3c through), caps off: 1c-inside went from -$4.2k to -$5.5k (+16% contracts); 2c-behind from -$4.3k to -$5.5k; 8c-behind barely moved. With caps on, 1c-inside went from -$1,510 to -$1,577.
+   fix: 1) Line 118: use "tau": Q.tau.array (not Q.tau.values) so O.tau stays tz-aware. Otherwise the merge at line 126 raises under pandas 3.
+
+2) Add a parameter `pickoff=None` to simulate(). Insert this right after `C = C.sort_values("t")` (line 132):
+
+    if pickoff is not None:
+        # stale-quote pick-off: once the real market has moved through our price, our whole remaining size is taken
+        thru = np.where(C.side == "sell", C.yes - C.px, C.px - C.yes)
+        C.loc[thru >= pickoff / 100 - 1e-9, "count"] = np.inf
+        # the real book at the next minute end (still inside our live window) crossing our price cannot coexist
+        # with our resting order: those bids/asks would have matched it
+        nb = Q[["ticker", "tau", "bid", "ask"]].assign(tau=lambda d: d.tau - pd.Timedelta(minutes=1))
+        On = O.merge(nb.rename(columns={"bid": "nbid", "ask": "nask"}), on=["ticker", "tau"])
+        xs = On[On.nbid > On.sell + 1e-9].assign(side="sell", px=lambda d: d.sell, yes=lambda d: d.nbid)
+        xb = On[On.nask < On.buy - 1e-9].assign(side="buy", px=lambda d: d.buy, yes=lambda d: d.nask)
+        C = pd.concat([C, pd.concat([xs, xb]).assign(t=lambda d: d.tau + pd.Timedelta(seconds=60), count=np.inf)]).sort_values("t")
+
+3) In main(), add baseline rows for pickoff in (2, 3, 5), shown next to the print-sized result. Present these as the pessimistic, realistic-for-stale-quotes bound, not as an optional extra.
+
+[c4] critical | crash/wrong numbers either way | accounting | simulate() crashes because the order table's tau loses its timezone, so the merge with the trades fails
+   loc: backfill/simmaker.py:118 ("tau": Q.tau.values) -> crash at :126 (Tm.merge(O, on=[...,'tau'])); same mismatch would hit :127 comparisons
+   scenario: load() makes Q.tau tz-aware UTC (line 72). `Q.tau.values` gives a tz-naive numpy datetime64, so O.tau, O.live_from and O.live_to are all naive. Tm.tau is tz-aware because it comes from T.t (utc=True, line 63). I reproduced it with the project venv (pandas 3.0.6) on a 1-market synthetic M/T/Q: `ValueError: You are trying to merge on datetime64[us, UTC] and datetime64[us] columns for key 'tau'`. The first call to simulate() in main() (line 195) raises, so the script writes no results and SIM_MAKER.md is never produced. I patched a scratch copy and the P&L arithmetic then checks out by hand: a 25-lot sell-YES at 0.49 is held as NO at 0.51, fee is ceil(1.75*25*0.51*0.49)=11c, pnl=(1-0.51)*25-0.11=$12.14; a 3.7-lot trade is floored to 3 with a 2c fee; a 0.5-lot trade is skipped.
+   fix: At line 118, replace `"tau": Q.tau.values` with `"tau": Q.tau.array`. This keeps the column as tz-aware UTC, so O.live_from and O.live_to at lines 121-122 are tz-aware too. The merge at line 126 and the time comparisons at line 127 then work. An alternative is to add `O["tau"] = pd.to_datetime(O.tau, utc=True)` right after the DataFrame is built and before live_from is computed.
+
+[c5] minor | makes results too pessimistic | accounting | 'per sim hour' divides by BTC events plus ETH events, so it is half the real per-hour P&L, and the scaling note in the header is wrong
+   loc: backfill/simmaker.py:187 (n_hours = M.event.nunique()), :175 ($_per_sim_hour), :188/:192 (header text)
+   scenario: KXBTC-26JUL3121 and KXETH-26JUL3121 are different event tickers with the same close time. Each sampled clock hour therefore counts twice: the W31 data has 24 clock hours but n_hours=48. '$_per_sim_hour' is really per series-hour, about half of what the two-coin bot earns per clock hour. The header says "'per sim hour' x 24 x 30 / sampling = per month if run every hour (data samples every 2nd hour)". Reading 'sampling' as 2 gives x360, but the correct monthly figure for both coins quoted every hour is per_sim_hour x 1440, so the reader under-states monthly $ by 4x. The title line also reports "{n_hours} sampled hours", which doubles the real count.
+   fix: simmaker.py:187 `n_hours = M.close.nunique()` (count clock hours, so both coins together give one hour). Line 192 becomes: "Scale: 'per sim hour' (BTC+ETH combined, per clock hour) x 24 x 30 = per month if run every hour; sampling every 2nd hour needs no correction to a per-hour rate."
+
+[c6] major | crash/wrong numbers either way | stats | BTC and ETH events are counted as separate 'hours', so the sample size is doubled, the $/hour figure is ambiguous and peak capital is understated
+   loc: backfill/simmaker.py:187 (n_hours = M.event.nunique()), 188 (header), 175 ($_per_sim_hour), 192 (scaling note), 170+179 (cap_used grouped by F.event)
+   scenario: Checked on the W31 data on disk: M.event.nunique() = 48 but M.close.nunique() = 24, because KXBTC-26JUL3121 and KXETH-26JUL3121 are different events closing at the same time. So the header says '48 sampled hours' when there are 24. '$_per_sim_hour' is total PnL (both coins) / (2H), which is half the PnL of one clock hour of the combined bot. The note 'x 24 x 30 / sampling' gives the right monthly figure only because two errors cancel (/2H x 720 x 2). Read the natural way ($/hour x 720), the monthly figure comes out 2x too small. Read 'sampling = 2', it comes out 4x too small. If someone later fixes n_hours and keeps '/ sampling', it comes out 2x too large. The BTC and ETH positions for the same close are open at the same time, yet peak_capital_per_hour_$ is the maximum over single-coin events. Real capital per clock hour can be about 2x the reported figure, so any return-on-capital worked out from this table is overstated by up to 2x. The grid has no $/month column at all, so the user's headline number has to be worked out by hand from this formula.
+   fix: Line 187: n_hours = M.close.nunique()  # distinct clock hours (BTC and ETH events with the same close count as one hour).
+Line 170: cap_used = (F.our_px * F.n).groupby(F.close).sum()  # capital held at the same time across both coins.
+In summary() add "$_per_month": round(F["pnl_$"].sum() / n_hours * 730), and rename the key "peak_capital_per_hour_$" to "peak_capital_per_clock_hour_$".
+Line 192: replace the scaling note with "'per sim hour' is PnL per clock hour (BTC+ETH combined); x730 = per month if run every hour." Drop the '/ sampling' factor, because a per-hour rate needs no sampling correction.
+
+[c7] major | interpretation only | stats | No check of how much PnL comes from one day or a few events; 28 Sep is included here but excluded in maker.py
+   loc: backfill/simmaker.py:163-179 (summary) vs backfill/maker.py:28 (EXCLUDE = {'2026-09-28'})
+   scenario: Payoffs are binary and size limits are large (POS 100 per market and side, EVCAP 400 per event), so one event can swing PnL by hundreds of dollars. This exact period has a history: SUMMARY.md says 28 Sep 2026 'made 96% of the profit' of an earlier strategy. maker.py and SIM.md exclude that day, and the earlier maker result ($1,505/mo for BTC) was about $1.0k/mo without May. summary() reports only total, day_t and sharpe. A positive total and t > 2 driven by 28 Sep or by 3-4 lucky events would look identical to a steady edge. The numbers also cannot be compared with MAKER.md, which leaves 28 Sep out while simmaker keeps it in.
+   fix: In summary(), after d_all is built, add the following to the returned dict:
+    ev = F.groupby("event")["pnl_$"].sum()
+    "worst_day_$": round(d_all.min()),
+    "ex_best_day_$": round(d_all.sum() - d_all.max()),
+    "ex_28sep_$": round(d_all.drop("2026-09-28", errors="ignore").sum()),
+    "top5_events_share": round(ev.nlargest(5).sum() / ev.sum(), 2) if ev.sum() > 0 else np.nan,
+Optionally, add a weekly-block bootstrap CI as well:
+    wk = d_all.groupby(pd.to_datetime(d_all.index).to_period("W")).sum().values
+    rng = np.random.default_rng(0)
+    bs = np.array([rng.choice(wk, len(wk)).sum() for _ in range(2000)]) * 30 / len(d_all)
+    "ci90_$per_month": (round(np.percentile(bs, 5)), round(np.percentile(bs, 95)))
+In the write-up, say "makes money" only if ex_28sep_$ > 0 and ex_best_day_$ > 0, the top-5-event share is well below 1, and the CI excludes 0. Also report the base case a second time with 2026-09-28 removed, the same exclusion maker.py uses, so it can be compared with MAKER.md and SIM.md.
+
+[c8] major | interpretation only | stats | The model is compared with the no-model and placebo bots only by eye; no paired same-day test
+   loc: backfill/simmaker.py:199-206 (baselines table)
+   scenario: The key question is whether the profit comes from the model or just from collecting the spread. In this project's own MAKER_CHECKS.md, 'no model: sell to every taker' made MORE $/month ($1,573, t 1.75) than the model ($1,049). Here each bot gets its own unpaired day_t. Model t = 1.9 next to placebo t = 0.6 does not show the model beats the placebo: all bots trade the same days and the same tape, so their daily PnLs are strongly correlated, and the right test is on the daily difference. The user could conclude 'the model adds value' when the difference is noise, or conclude the reverse.
+   fix: In main(), keep each baseline's F and add a same-day paired test on the data's own day grid (replace lines 200-206):
+
+    days = M.close.dt.strftime("%Y-%m-%d").unique()
+    def daily(F):
+        return (F.groupby("day")["pnl_$"].sum() if not F.empty else pd.Series(dtype=float)).reindex(days, fill_value=0.0)
+    B, Fs = [], {}
+    for name, kw in (("model (base case)", {}),
+                     ("model, quote only minutes 0-35 (pre-registered from KXBTCD Jan-Mar)", {"max_mins": 35}),
+                     ("no model: quote 1c inside always", {"use_model": False}),
+                     ("placebo: model mirrored around the mid", {"flip": True})):
+        Fs[name] = simulate(M, T, Q, **base, **kw)
+        B.append({"bot": name, **summary(Fs[name], n_hours)})
+    L += ["## Baselines (compete 0.5, latency 2 s, size 25, maker fee on)", "", pd.DataFrame(B).to_markdown(index=False), ""]
+    dm, P = daily(Fs["model (base case)"]), []
+    for name in ("no model: quote 1c inside always", "placebo: model mirrored around the mid"):
+        dd = dm - daily(Fs[name])                       # same days, same tape -> paired
+        rng = np.random.default_rng(0)
+        bs = [dd.values[rng.integers(0, len(dd), len(dd))].sum() for _ in range(2000)]   # day bootstrap
+        P.append({"model minus": name, "diff_$": round(dd.sum()),
+                  "paired_day_t": round(dd.mean() / dd.std() * np.sqrt(len(dd)), 2) if dd.std() > 0 else np.nan,
+                  "diff_$_95ci_dayboot": f"{np.percentile(bs, 2.5):.0f} .. {np.percentile(bs, 97.5):.0f}"})
+    L += ["## Paired same-day test: does the model beat the baselines?", "",
+          "The model adds value only if 'model minus placebo' is significantly > 0; 'model minus no model' shows whether it beats plain spread capture.", "",
+          pd.DataFrame(P).to_markdown(index=False), ""]
+
+(Optional, for the same reason: in summary() at line 167, build d_all on the data's own days instead of the fixed 2026-08-01..09-30 range, so the Sharpe ratio is not diluted by days with no data.)
+
+[c9] major | crash/wrong numbers either way | stats | 'Every 2nd hour' samples only odd-UTC closes, so all 8:30 ET macro-release hours are in and the 9:30 ET equity-open hour is never sampled
+   loc: backfill/simdata.py:67 (pd.date_range(start+1h, ...)[::a.every]); simmaker.py:192 (extrapolation), 176-177 (max_dd, sharpe)
+   scenario: Checked on disk: the W31 closes are all at UTC hours 1,3,...,23. In Aug-Sep (EDT, UTC-4): 8:30 ET releases (CPI, NFP, PPI, the weekly Thursday jobless claims) fall in the 12-13 UTC window, which closes at 13 (odd) and is always sampled. 10:00 ET releases and the 14:00 ET FOMC fall in the windows closing at 15 and 19, also sampled. The 13:30 UTC US equity open falls in the 13-14 window, which closes at 14 (even) and is never sampled. Jump hours are exactly where market makers get picked off. So multiplying per-hour PnL by all 24 hours assumes the untested even hours behave like a non-random half that holds every scheduled macro shock. sharpe and max_dd_$ also describe a bot running half the hours: running every hour roughly doubles the dollar PnL and the drawdown, and changes the Sharpe by about sqrt(2). Neither can be read as the figure for the full bot.
+   fix: 1) backfill/simdata.py:67 — alternate the hour parity by ISO week. Odd weeks keep the odd hours, so the existing W31 and W33 files stay valid:
+    all_hours = pd.date_range(start + timedelta(hours=1), end, freq="1h", tz="UTC").to_pydatetime()
+    hours = [h for h in all_hours if (h.hour + int(h.strftime("%V"))) % a.every == 0]
+Then stop the running collectors (PIDs 87139/87140, which still run the old code). Delete only the even-week files, which hold odd hours that should have been even: backfill/data_local/sim/KX{BTC,ETH}_2026-W32_*.parquet, plus any W34/W36/... files written before the stop. Then restart. The resume check at line 71 skips the odd weeks already done. Over Aug-Sep this gives about 30 odd-hour days and 31 even-hour days, so every UTC hour (including the 8:30 ET release window and the 9:30 ET equity open) is sampled on about half the days.
+2) backfill/simmaker.py:208 — add `(F.close.dt.hour, "UTC close hour")` to the breakdown tuple. This shows whether particular hours carry the PnL.
+3) backfill/simmaker.py:192 — change the text so it says that total_$, max_dd_$ and sharpe are for a bot quoting only the sampled half of the hours (every 2nd hour). Running every hour would roughly double the dollar PnL and drawdown, and raise the Sharpe by at most about sqrt(2).
+
+[c10] minor | makes results too optimistic | stats | Aug-Sep 2026 was already in maker.py's 'run once' holdout, so this sim is not independent confirmation
+   loc: backfill/maker.py:27 (HOLD = 2026-01-01..2026-10-01) vs simmaker.py:45 (START 2026-08-01)
+   scenario: The frozen 8c rule was already scored on Aug-Sep 2026 (minutes 10-20, simple fill model) in maker.py's holdout, and simmaker was built after that holdout came out positive. simmaker re-runs the same rule on the same trades and outcomes with a more realistic fill model. If both are positive, that is one sample under two fill assumptions, not 'confirmed out-of-sample twice'. Their errors are correlated through the same settlement outcomes.
+   fix: In simmaker.py main(), add this line to the header list `L`, before "## Model-driven market maker ...":
+
+    L += ["**Not independent evidence of edge:** Aug-Sep 2026 is inside maker.py's 2026 holdout. That run used the same "
+          "events, settlements, model and 8c margin, and scored minutes 10-20 at +4.1c (Aug) and +2.7c (Sep). This sim "
+          "tests whether that result survives queue, latency, competition and fees. It does not test whether the edge "
+          "exists out of sample. Fresh evidence = the live paper run (live/papermaker.py) and data from Oct 2026 on.", ""]
+
+Optional, for consistency with maker.py: filter out 2026-09-28 in load() (`M = M[M.close.dt.strftime('%Y-%m-%d') != '2026-09-28']`). Otherwise, state that the sim includes that day.
+
+[c11] minor | crash/wrong numbers either way | stats | day_t uses only days with fills, and the Sharpe pads a hard-coded 61-day grid with zeros (wrong while data is partial)
+   loc: backfill/simmaker.py:166-168, 177-178
+   scenario: d_all always spans 2026-08-01..09-30. simdata is still downloading (only W31 is on disk) and simmaker loads whatever exists. A synthetic 2-day sample gives sharpe 2.88 (59 padded zero days) against 20.2 on the 2 real days, and day_t = NaN. day_t uses d (fill days only) while sharpe uses d_all, so the two disagree whenever a config has days with no fills, as configs with compete=1 or JOIN only may. Dropping zero days inflates t when the mean is positive.
+   fix: In summary(), take the day grid from the loaded markets, not a hard-coded range, and compute both statistics on it:
+
+def summary(F, n_hours, days):
+    if F.empty:
+        return {"fills": 0}
+    d_all = pd.Series(0.0, index=days).add(F.groupby("day")["pnl_$"].sum(), fill_value=0)
+    eq = d_all.cumsum()
+    ...
+    "sharpe": round(d_all.mean() / d_all.std() * np.sqrt(365), 2) if d_all.std() > 0 else np.nan,
+    "day_t": round(d_all.mean() / d_all.std() * np.sqrt(len(d_all)), 2) if len(d_all) > 2 and d_all.std() > 0 else np.nan,
+
+In main(), right after building M:
+    days = sorted(M.close.dt.strftime("%Y-%m-%d").unique())
+Pass days to both summary calls, summary(F, n_hours, days) on lines 196 and 205.
+
+Also add a completeness guard so a partial run is labelled:
+    want = {h.strftime("%G-W%V") for h in pd.date_range("2026-08-01 01:00", "2026-10-01", freq="2h", tz="UTC")}
+    for s in PAIRS:
+        have = {os.path.basename(f).split("_")[1] for f in glob.glob(f"{SIM}/{s}_*_trades.parquet")}
+        if want - have:
+            L.insert(0, f"**PARTIAL DATA: {s} missing weeks {sorted(want - have)}**\n")
+
+Prerequisite (separate bug): line 118 must keep the timezone, e.g. "tau": pd.DatetimeIndex(Q.tau).as_unit("us"). Otherwise the merge at line 126 crashes and no summary is ever produced.
+
+[c12] critical | crash/wrong numbers either way | bugs | simulate() crashes on every call: the order table's tau loses its timezone, so the merge with trade times fails
+   loc: backfill/simmaker.py:118 ("tau": Q.tau.values), crash raised at line 126 (Tm.merge(O, on=[...,'tau']))
+   scenario: Q.tau is datetime64[s, UTC]. `.values` turns it into a plain datetime64[s] with no timezone. Tm.tau, built from the trade timestamps, is datetime64[us, UTC]. I ran simulate() with the venv (pandas 3.0.6) on the real local W31 KXBTC tape (240 markets, 15478 trades, 13920 quote rows). It fails with: ValueError: You are trying to merge on datetime64[us, UTC] and datetime64[s] columns for key 'tau'. So the grid, the baselines and the breakdowns all fail, which is why results/SIM_MAKER.md does not exist. Fixing only the merge would still leave a later problem: live_from/live_to would be timezone-naive while Tm.t is timezone-aware, so the comparisons at line 127 would break next.
+   fix: backfill/simmaker.py line 118: change `"tau": Q.tau.values` to `"tau": Q.tau.array`. This keeps the UTC timezone on O.tau, so the merge at line 126 and the live_from/live_to comparisons at line 127 run on timezone-aware timestamps on both sides.
+
+[c13] major | makes results too optimistic | bugs | Fill model misses fills from other traders' limit orders that cross our stale quote (the main way a market maker gets picked off)
+   loc: backfill/simmaker.py:129-131 (fills come only from real taker prints); docstring lines 8-9 claim pick-off is modelled
+   scenario: Our sell rests at a = ask(tau) - 1c for the whole minute. If fair value jumps, other traders post bids at or above a. In reality those bids would have matched our resting ask (we sell just before the price rises). In the real tape no trade printed, because our order did not exist, so the sim never fills us. The same happens in reverse for our buys when the ask drops to or below b. I measured this on the local W31 data with the deterministic no-model baseline (lat 2, compete 0.5): I counted order-minutes where the real book at the next minute end had bid_next >= our sell or ask_next <= our buy, and the sim recorded no fill. KXBTC: 537 sell + 556 buy such order-minutes, versus only 568 order-minutes the sim filled at all. KXETH: 610 + 673, versus 437 filled. Held to settlement, those missed fills average -7.6c / -6.0c per contract (BTC) and -4.5c / -6.6c (ETH) before fees. So the sim drops roughly twice as many fills as it records, and they are the adverse ones. This is a lower bound, because crossings that reversed within the minute cannot be seen. The model bot's improved quotes (ask - 1c / bid + 1c) face the same exposure.
+   fix: 1) Line 118: keep the timezone, so the merge at line 126 and the concat below work. Change "tau": Q.tau.values to "tau": Q.tau.array.
+
+2) Add a parameter: def simulate(..., max_mins=60, cross_fill=1.0).
+
+3) Replace line 132 (C = C.sort_values("t")) with:
+
+    # other traders' limit orders that cross our stale quote: the real book at the next minute end (tau+60 s,
+    # inside our live window) has bid >= our sell / ask <= our buy -> that order would have matched ours
+    Qs = Q[["ticker", "tau", "bid", "ask"]].sort_values(["ticker", "tau"])
+    g = Qs.groupby("ticker")
+    nx = pd.DataFrame({"bid": g.bid.shift(-1), "ask": g.ask.shift(-1),
+                       "gap": g.tau.shift(-1) - Qs.tau}).reindex(Q.index)
+    nxt = (nx.gap == pd.Timedelta(minutes=1)).values          # next row must really be the next minute
+    xs = O[nxt & np.isfinite(O.sell.values) & (nx.bid.values >= O.sell.values - 1e-9)].assign(side="sell", px=lambda d: d.sell)
+    xb = O[nxt & np.isfinite(O.buy.values) & (nx.ask.values <= O.buy.values + 1e-9)].assign(side="buy", px=lambda d: d.buy)
+    X = pd.concat([xs, xb])
+    X = X.assign(t=X.tau + pd.Timedelta(seconds=60), count=np.floor(cross_fill * qsize))
+    C = pd.concat([C, X]).sort_values("t")
+
+The existing rem/pos/evn loop caps these fills per order, market and event. Report cross_fill in (0.5, 1.0) in the main() grid and in the baselines. 0.5 covers post-only makers who would be rejected rather than fill us. Do not default it to 0. This is a lower bound, because crossings that reverse within the minute are not visible. I tested this in a scratch copy on W31 and it runs.
+
+[c14] minor | makes results too optimistic | bugs | max_dd ignores a loss on the first day because the equity curve does not start at $0
+   loc: backfill/simmaker.py:169,176 (eq = d_all.cumsum(); (eq.cummax() - eq).max())
+   scenario: cummax() starts at the first day's equity, not at 0. If Aug 1 is a losing day, that loss never counts as drawdown, and neither does any later decline that stays below the opening peak of $0. Reproduced on the W31 tape (fixed simulate, synthetic p): daily P&L was 2026-08-01 -$135.92 and 2026-08-02 -$1.57. summary() reported max_dd_$ = 2 when the real drawdown from the $0 start is $137.
+   fix: backfill/simmaker.py line 176: replace `"max_dd_$": round((eq.cummax() - eq).max()),` with `"max_dd_$": round((eq.cummax().clip(lower=0) - eq).max()),`. This takes the running peak with the $0 starting equity included. It is the same as putting a 0 in front of eq before taking cummax.
+===== disputed 1
+
+[d0] minor | makes results too pessimistic | accounting | Sharpe and drawdown use a fixed Aug 1 to Sep 30 calendar, so days with no data count as $0 days; day_t uses a different set of days
+   loc: backfill/simmaker.py:167-169, :177 (sharpe), :178 (day_t)
+   scenario: d_all is zero-filled over all 61 calendar days whether or not any hour on that day was collected. Only ISO week 2026-W31 is on disk now (Aug 1-2), so a run today gives 59 phantom zero days. Sharpe is cut by about sqrt(2/61), roughly 0.18x, and the equity curve is flat padding. The same happens later for any week or hour that simdata skips ('skipped' path). day_t goes the other way: it uses `d`, which drops days that have data but no fills, so it is slightly optimistic. The two statistics are computed on different samples.
+   fix: Pass the days that actually have data into summary, e.g. `days = sorted(M.close.dt.strftime('%Y-%m-%d').unique())` computed in main() and given to summary(F, n_hours, days). Use `d_all = pd.Series(0.0, index=days).add(d, fill_value=0)` for Sharpe, drawdown and day_t, i.e. day_t = d_all.mean()/d_all.std()*sqrt(len(d_all)).
+   reasons: ["The hardcoded calendar at simmaker.py:167-168 only causes trouble if simmaker is run before collection has finished. simdata.py is still running for both series right now (PIDs 87139 and 87140). It has written 2026-W31 and W32 so far (24 and 84 hours) and moves on week by week until all of Aug-Sep is covered. Once it finishes, every one of the 61 days has data: it samples every 2nd hour, so about 12 events per day per series, each with up to 10 brackets. That makes d_all match the real sample and leaves no phantom zero days.\n\nThe 'skipped' path in simdata.py:63-65 drops single hours, not whole days. Losing all 12 sampled hours of a day to exceptions in both series is not a realistic case.\n\nThe day_t vs Sharpe mismatch (d against d_all, line 178) only matters on days that have data but zero fills. With about 24 events and 240 bracket-hours a day, quoting at every minute, that will essentially never happen. So the two samples are the same in practice.\n\nA run on partial data would also be obvious from the report header, which prints M.close.min() to M.close.max() at line 189. Deriving the day index from M would be a harmless way to make this more robust, but it would not change the final result or how it is read.", "The claim is real, but small, and part of it is wrong. In summary() (backfill/simmaker.py:167-168), d_all is built over a fixed calendar from 2026-08-01 to 2026-09-30 and zero-filled. Sharpe at :177 is computed on that series. Right now data_local/sim only holds weeks W31 and W32 for KXBTC and KXETH, because collection is still running. So any run today counts roughly 47-52 days that have no data at all as $0 days. That shrinks the mean and the std, and Sharpe comes out at about sqrt(n_real/61) of its true value, which is too pessimistic. The report header (:188-189) shows the real date range taken from M.close, so a reader would not see that the Sharpe was diluted. The same thing happens later for any day that simdata could not collect: the 'skipped' path at simdata.py:64. day_t (:178) uses d instead, which only has days with fills. So the two statistics use different samples. In the base case nearly every collected day will have fills, so that part matters less. What the reviewer gets wrong: max_dd_$ is not affected. Adding $0 days between real days leaves cummax minus eq unchanged, so drawdown is not too pessimistic. Once all of Aug-Sep is collected every 2nd hour, every calendar day has data and the Sharpe error mostly goes away. So this only bends the result on partial or interim runs, which is the state of the data now. Severity: minor."]

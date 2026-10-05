@@ -1,0 +1,43 @@
+name: forward
+# Daily forward test of the frozen ETH rule (backfill/forward.py): scores each finished day, keeps a ledger.
+on:
+  schedule:
+    - cron: "30 5,11,17,23 * * *"   # several tries a day: GitHub skips some scheduled runs; days already scored are skipped
+  workflow_dispatch:
+    inputs:
+      test_day:
+        description: "dry run: score this day without touching the ledger (pipeline check)"
+        default: ""
+permissions:
+  contents: write
+concurrency:
+  group: forward
+  cancel-in-progress: false
+jobs:
+  forward:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pandas numpy pyarrow requests tabulate ppc-forecaster
+      - name: score
+        working-directory: backfill
+        run: |
+          if [ -n "${{ inputs.test_day }}" ]; then
+            python -c "import forward; print(forward.score_day('${{ inputs.test_day }}'))"
+            python -c "import forward_base as f; print(f.score_day('KXBTC', 'BTC-USD', '${{ inputs.test_day }}'))"
+          else
+            python forward.py --ledger ../results/forward_ledger.csv --out ../results/FORWARD.md
+            python forward_base.py --ledger ../results/forward_base_ledger.csv --out ../results/FORWARD_BASE.md
+          fi
+      - name: publish
+        if: ${{ inputs.test_day == '' }}
+        run: |
+          [ -f results/FORWARD.md ] && cat results/FORWARD.md >> "$GITHUB_STEP_SUMMARY"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/forward_ledger.csv results/FORWARD.md results/forward_base_ledger.csv results/FORWARD_BASE.md 2>/dev/null
+          git commit -q -m "forward test $(date -u +%F)" && git pull -q --rebase && git push -q || true
