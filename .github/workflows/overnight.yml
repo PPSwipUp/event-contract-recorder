@@ -72,7 +72,7 @@ jobs:
           done
           pkill -f pmusrec.py || true; pkill -f soccerlive.py || true
           sleep 2; checkpoint "${MODE}-final"
-          tail -3 live/*_gh.log
+          tail -n 3 live/*_gh.log || true
       - name: start the next job if the night is not over
         if: ${{ !cancelled() && inputs.mode == 'night' && steps.preflight.outcome == 'success' }}
         env:
