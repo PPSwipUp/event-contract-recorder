@@ -1,7 +1,7 @@
 """Score the five frozen Polymarket US liquidity-incentive variants (results/PLAN_PMUS.md) on recorded day-of books.
   python backfill/pmusday.py --day 2026-10-05
-Assumption stated in the output: a program's pool is shared across that program's markets IN THE SAME GAME
-(each game has its own day-of period); if it is shared across all games, rewards here are overstated ~2x.
+A program's pool is shared across ALL of that program's markets (polymarket.us/rewards lists e.g. the MLB WC player-
+props day-of program as one $850 pool over 483 markets spanning both games), as PLAN_PMUS.md specifies.
 """
 from __future__ import annotations
 
@@ -106,7 +106,7 @@ def main():
     prog = pd.concat([pd.read_csv(f) for f in sorted(glob.glob(f"{REC}/programs_*.csv"))]).drop_duplicates(["slug", "period"])
     prog = prog[prog.period == "day_of"].copy()
     prog["game"] = prog.slug.map(game_of)
-    prog["n_markets"] = prog.groupby(["program", "game"]).slug.transform("nunique")
+    prog["n_markets"] = prog.groupby("program").slug.transform("nunique")
     prog = prog.set_index("slug")
     B = pd.read_json(f"{REC}/{a.day}.jsonl", lines=True)
     B = B[B.slug.isin(prog.index)].sort_values(["slug", "ts"])
@@ -156,8 +156,8 @@ def main():
     comp = B.groupby([B.game, (B.start - B.ts) // 3600]).touch_size.median().unstack(0).round(0)
     L = ["# Polymarket US liquidity incentives: five frozen variants on recorded day-of books (PLAN_PMUS.md)", "",
          f"Day {a.day}; markets recorded in window: {B.slug.nunique()}; snapshots: {len(B)}; thin set: {len(thin)} markets",
-         "ASSUMPTION: each program's day-of pool is shared across its markets in the SAME game; if shared across all "
-         "games, rewards are ~2x too high.  Fills are a book-based proxy (no public trade feed).", "",
+         "Pools shared across all of a program's markets (both games), per the rewards page.  "
+         "Fills are a book-based proxy (no public trade feed).", "",
          "## Per variant and game ($)", "", S.to_markdown(), ""]
     if len(F):
         L += ["## Fills", "", F.groupby(["variant", "game"]).agg(n=("px", "size"), markout_5m_c=("markout_5m_c", "mean"),
