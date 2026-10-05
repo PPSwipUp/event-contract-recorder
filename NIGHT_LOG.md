@@ -399,3 +399,7 @@
 - pmlp + pmlp_tight alive, 14-day runs (to ~17 Oct). Plan frozen: results/PLAN_PMLP_CALM.md.
 - Polymarket US: has its own LIP (Kalshi-style Discount^ticks scoring, Target Size, Max Spread) + maker rebate 0.0125·C·p(1-p).
 - TODO 06:35: fill-by-fill analysis of pmlp_tight; build --calm flag + per-loop 14d/mid filter; launch _tight_calm.
+## 2026-10-05 06:35-06:50 — PM LP follow-up done
+- pmlp + pmlp_tight survived curfew (resumed 05:30 UTC). Restarted 05:37 UTC with per-fill logging (same state; NOTE restart reset their 336 h clocks, so they now end ~19 Oct).
+- Launched pmlp_tight_calm (--calm, same 20 markets as _tight, 312 h -> ~18 Oct). 2/20 markets already pulled by the 14d/mid filter (Israel 0.05, Indiana 0.095).
+- backfill/pmfills.py -> results/PM_FILLS_TIGHT.md. 10 old fills reconstructed: +$65 marked; $70 of it is ONE short in "Israel accuses Iran" (mid fell to 0.05, now outside the 0.10-0.90 rule). 4 markets show +$2.50 = half-tick mark at mid, not realised profit.
