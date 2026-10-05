@@ -104,7 +104,7 @@ def main():
     ap.add_argument("--day", default="2026-10-05")
     a = ap.parse_args()
     prog = pd.concat([pd.read_csv(f) for f in sorted(glob.glob(f"{REC}/programs_*.csv"))]).drop_duplicates(["slug", "period"])
-    prog = prog[prog.period == "day_of"].copy()
+    prog = prog[(prog.period == "day_of") & prog.slug.str.contains(a.day)].copy()   # programs gain later games' markets
     prog["game"] = prog.slug.map(game_of)
     prog["n_markets"] = prog.groupby("program").slug.transform("nunique")
     prog = prog.set_index("slug")
