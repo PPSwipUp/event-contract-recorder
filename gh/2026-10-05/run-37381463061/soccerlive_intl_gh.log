@@ -76,3 +76,5 @@
 01:53:01 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 0.05 -> 1 s later: [0.202, 0.05]
 01:53:03 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 0.05 -> 1 s later: None
 01:54:53 conl-gua-sur-2026-10-05 BUY_ALL 0.568 c x 0.86 -> 1 s later: None
+02:01:45 poll 6301: 21 live matches, 63 books, 0.3s
+02:11:45 poll 6601: 21 live matches, 63 books, 0.2s
