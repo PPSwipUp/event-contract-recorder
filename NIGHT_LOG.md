@@ -430,3 +430,6 @@
 - PMUS_DAY (frozen 5 variants, GH last hour merged): first-read rule passes B/C/D (net + both games) BUT fake-check WEAK:
   rewards+rebate $30-170/game vs negative 5-min mark-outs; positive net = settlement luck on held props (2 games, best of 5).
   Continue 5 more game days per plan (recordings 6-7 Oct running).
+## 2026-10-06 ~09:00 — PMUS winning variants tested without using outcomes (results/PMUS_CLV.md): LUCK
+- Closing-line value negative at every horizon (t -3.3 to -4.7), expected fill P&L -$1.2k to -$1.8k; settlement win = 2 pitchers
+  pulled early on correlated outs ladders. Closing prices are well calibrated (Brier 0.132). 5 more game days continue per plan.
