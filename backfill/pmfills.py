@@ -59,7 +59,7 @@ def main():
     st = json.load(open(os.path.join(LIVE, f"pmlp{a.tag}_state.json")))
     size = None
     fp = os.path.join(LIVE, f"pmlp{a.tag}_fills.jsonl")
-    F = pd.read_json(fp, lines=True) if os.path.exists(fp) and os.path.getsize(fp) else pd.DataFrame()
+    F = pd.read_json(fp, lines=True, dtype={"token": str, "cid": str}) if os.path.exists(fp) and os.path.getsize(fp) else pd.DataFrame()
     now = int(time.time())
     if len(F):
         size = F["size"].iloc[0]

@@ -433,3 +433,11 @@
 ## 2026-10-06 ~09:00 — PMUS winning variants tested without using outcomes (results/PMUS_CLV.md): LUCK
 - Closing-line value negative at every horizon (t -3.3 to -4.7), expected fill P&L -$1.2k to -$1.8k; settlement win = 2 pitchers
   pulled early on correlated outs ladders. Closing prices are well calibrated (Brier 0.132). 5 more game days continue per plan.
+## 2026-10-06 ~14:30 — Deeper checks on the 3 leads the user asked about
+- Live soccer gaps (PM intl): 69 same-instant episodes over 2 evenings, $138 at first sight, but only 14 lasted >=3 s = $1.28.
+  PM intl holds marketable sports orders 3 s (docs.polymarket.com order lifecycle) -> uncatchable. PM US docs show no such delay -> 9-10 Oct test stands.
+- Paper LP (PM intl, long-dated politics/Fed): pmfills token-id float bug fixed (pandas parsed 77-digit ids as numbers). 19 logged fills:
+  mark-out +0.29c (5 m), +0.45c (1 h) = about the half-tick, no adverse selection seen in 2 days. Rewards ~$4/online h on paper.
+  Still: 60-day replay -$49/day from jumps, real makers net negative, venue unusable; transferable test = PM US political daily_event programs.
+- Range bot forward: no bug (re-scoring 1 & 4 Oct reproduces ledger exactly). -5.8c/bet over 18 bets vs Aug/Sep +5.4/+6.1c (both t<1.5):
+  ~1.2 SE below expectation, not significant either way. Continue to 60 days.
