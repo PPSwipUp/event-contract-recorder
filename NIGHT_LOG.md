@@ -441,3 +441,7 @@
   Still: 60-day replay -$49/day from jumps, real makers net negative, venue unusable; transferable test = PM US political daily_event programs.
 - Range bot forward: no bug (re-scoring 1 & 4 Oct reproduces ledger exactly). -5.8c/bet over 18 bets vs Aug/Sep +5.4/+6.1c (both t<1.5):
   ~1.2 SE below expectation, not significant either way. Continue to 60 days.
+## 2026-10-06 14:40 — Polymarket US paper LP started (PLAN_PMUSLP.md)
+- 20 non-sports daily-program markets (Senate toss-ups, ballot measures, multi-state sweeps), 1,000/side; _join (at best) and _back (1 tick back).
+- First loops: rewards ~$2.4/h (_join), ~$1.2/h (_back) before fills. Verdict by mark-outs (not outcomes) after 7 days (~13 Oct).
+- User is dual US/UK citizen: Polymarket intl still not usable (US person attestation; UK close-only).
