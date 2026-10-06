@@ -41,3 +41,38 @@
 01:29:46 poll 5401: 21 live matches, 63 books, 0.2s
 01:35:21 conl-ber-brb-2026-10-05 BUY_ALL 1.123 c x 0.17 -> 1 s later: [0.127, 102.0]
 01:35:23 conl-ber-brb-2026-10-05 BUY_ALL 0.112 c x 9.23 -> 1 s later: None
+01:39:47 poll 5701: 18 live matches, 54 books, 0.2s
+01:42:37 conl-ber-brb-2026-10-05 SELL_ALL 0.236 c x 54.0 -> 1 s later: None
+01:45:53 col1-inm-isf-2026-10-03 SELL_ALL 38.764 c x 11.0 -> 1 s later: None
+01:49:55 col1-inm-isf-2026-10-03 BUY_ALL 2.08 c x 19.0 -> 1 s later: [2.08, 0.94]
+01:49:57 col1-inm-isf-2026-10-03 BUY_ALL 2.08 c x 0.94 -> 1 s later: None
+01:50:07 col1-inm-isf-2026-10-03 BUY_ALL 0.156 c x 0.61 -> 1 s later: [0.156, 0.61]
+01:50:13 col1-inm-isf-2026-10-03 BUY_ALL 1.118 c x 244.0 -> 1 s later: [0.077, 301.37]
+01:50:15 col1-inm-isf-2026-10-03 BUY_ALL 0.077 c x 36.47 -> 1 s later: None
+01:50:45 poll 6001: 21 live matches, 63 books, 0.2s
+01:52:15 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 9.05 -> 1 s later: [0.202, 9.05]
+01:52:17 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 9.05 -> 1 s later: [0.202, 9.05]
+01:52:19 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 9.05 -> 1 s later: [0.202, 9.05]
+01:52:21 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 9.05 -> 1 s later: [0.202, 9.05]
+01:52:23 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 9.05 -> 1 s later: [0.202, 9.05]
+01:52:25 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 9.05 -> 1 s later: [0.202, 9.05]
+01:52:27 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 9.05 -> 1 s later: [0.202, 9.05]
+01:52:29 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 9.05 -> 1 s later: [0.202, 9.05]
+01:52:31 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 9.05 -> 1 s later: [0.202, 9.05]
+01:52:33 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 9.05 -> 1 s later: [0.202, 9.05]
+01:52:35 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 9.05 -> 1 s later: [0.202, 9.05]
+01:52:37 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 9.05 -> 1 s later: [0.202, 9.05]
+01:52:39 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 9.05 -> 1 s later: [0.202, 9.05]
+01:52:41 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 9.05 -> 1 s later: [0.202, 9.05]
+01:52:43 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 9.05 -> 1 s later: [0.202, 0.05]
+01:52:45 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 0.05 -> 1 s later: [0.202, 0.05]
+01:52:47 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 0.05 -> 1 s later: [0.202, 0.05]
+01:52:49 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 0.05 -> 1 s later: [0.202, 0.05]
+01:52:51 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 0.05 -> 1 s later: [0.202, 0.05]
+01:52:53 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 0.05 -> 1 s later: [0.202, 0.05]
+01:52:55 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 0.05 -> 1 s later: [0.202, 0.05]
+01:52:57 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 0.05 -> 1 s later: [0.202, 0.05]
+01:52:59 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 0.05 -> 1 s later: [0.202, 0.05]
+01:53:01 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 0.05 -> 1 s later: [0.202, 0.05]
+01:53:03 col1-inm-isf-2026-10-03 BUY_ALL 0.202 c x 0.05 -> 1 s later: None
+01:54:53 conl-gua-sur-2026-10-05 BUY_ALL 0.568 c x 0.86 -> 1 s later: None
