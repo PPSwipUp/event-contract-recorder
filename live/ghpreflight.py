@@ -20,12 +20,15 @@ def check(name, fn):
 
 def pm_us_incentives():
     rows = pmusrec.programs(sys.argv[1])
-    assert rows, "no incentive programs returned"
+    if not rows:                     # the game has started/finished: its programs are gone, nothing to record (not a failure)
+        assert pmusrec.programs("mlb-"), "incentives API returned nothing at all"
+        return "game's programs gone (started) - API itself OK"
     return f"{len(rows)} program rows"
 
 
 def pm_us_book():
-    slug = pmusrec.programs(sys.argv[1])[0]["slug"]
+    rows = pmusrec.programs(sys.argv[1]) or pmusrec.programs("mlb-")
+    slug = rows[0]["slug"]
     b = pmusrec.book(slug)
     assert b and (b["bids"] or b["offers"]), f"empty book for {slug}"
     return f"{slug} bids {len(b['bids'])} offers {len(b['offers'])}"

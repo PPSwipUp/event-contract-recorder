@@ -424,3 +424,9 @@
   (overlapping repeats of the same gap, so <$20 distinct). Largest: ITA-TUR min 24 BUY_ALL 6.4c x 208 after 1 s = $13.
 - pmevarb_v2 (same-instant confirm): 16 distinct safe packages, max confirmed $3.31, ~$7.6 total; v1's $542 was staggered reads.
 - Verdict so far: same-instant gaps are REAL but small (~$10-20/evening on intl, before competition/leg risk). PM US soccer from 9-10 Oct decides relevance.
+## 2026-10-06 08:30 — Morning
+- Overnight GitHub run 37381463061 recorded 23:17-04:58 BST (17 checkpoints). Chained run failed preflight because NYY-TB's programs
+  vanish at first pitch -> 05:00-06:35 lost (soccer only). Fixed: ghpreflight treats a started game as OK.
+- PMUS_DAY (frozen 5 variants, GH last hour merged): first-read rule passes B/C/D (net + both games) BUT fake-check WEAK:
+  rewards+rebate $30-170/game vs negative 5-min mark-outs; positive net = settlement luck on held props (2 games, best of 5).
+  Continue 5 more game days per plan (recordings 6-7 Oct running).
