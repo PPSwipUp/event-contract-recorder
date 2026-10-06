@@ -31,3 +31,5 @@
 23:59:08 arg-vel-pla-2026-10-05 BUY_ALL 0.567 c x 63.0 -> 1 s later: None
 00:03:40 poll 3001: 30 live matches, 90 books, 0.2s
 00:14:39 poll 3301: 30 live matches, 87 books, 0.3s
+00:24:39 poll 3601: 30 live matches, 90 books, 0.2s
+00:35:42 poll 3901: 21 live matches, 63 books, 0.2s
