@@ -51,7 +51,7 @@ def side_share(levels, ours_px, target, disc, bid):
     return (mine / (mine + comp) if ok and mine + comp > 0 else 0.0), ok
 
 
-def run(B, prog, variant, thin, pulls):
+def run(B, prog, variant, thin, pulls, pull_any=False):
     """B: one market's snapshots (sorted). Returns dict of totals for this market."""
     slug = B.slug.iloc[0]
     pr = prog.loc[slug]
@@ -67,7 +67,7 @@ def run(B, prog, variant, thin, pulls):
         dt = min(nxt["ts"] - t, DT_MAX)
         if variant in "DE" and t >= start - 3 * 3600:
             break
-        if variant == "E" and any(a <= t < b for a, b in pulls):
+        if (variant == "E" or pull_any) and any(a <= t < b for a, b in pulls):
             continue
         bids, offers = [tuple(x) for x in r["bids"]], [tuple(x) for x in r["offers"]]
         q = {}
