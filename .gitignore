@@ -26,3 +26,4 @@ live/rules_log.jsonl
 live/kxlip_state.json
 live/kxlip.jsonl
 live/pmusrec/
+live/pmuslp_*_mids.jsonl
