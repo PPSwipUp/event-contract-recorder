@@ -1,0 +1,45 @@
+name: cloudlp
+# Always-on cloud twin of the paper LP bot pmlp_tight (results/PLAN_CLOUDLP.md): same markets and rules but NO
+# overnight curfew, to measure what the school Wi-Fi blackout costs.  Paper only: no orders, no keys.
+# One run lasts ~5.5 h, commits state + logs to the `cloudlp` branch every 10 min, then starts the next run itself.
+on:
+  schedule:
+    - cron: "37 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: cloudlp
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cloudlp
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q requests
+      - name: paper bot with periodic commits
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          save() { git add -A live && git commit -q -m "cloudlp $(date -u +%FT%TZ)" && git push -q origin HEAD:cloudlp || echo "nothing/push failed"; }
+          (cd live && exec python -u pmlp.py --size 500 --dist tick --no-curfew --tag _cloud_tight --hours 2000 > pmlp_cloud_tight.log 2>&1) &
+          bot=$!
+          end=$(( $(date +%s) + 325 * 60 ))
+          while [ "$(date +%s)" -lt "$end" ] && kill -0 $bot 2>/dev/null; do
+            sleep 600
+            save
+          done
+          kill $bot 2>/dev/null; sleep 5
+          save
+      - name: start the next run
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run cloudlp.yml --ref main
