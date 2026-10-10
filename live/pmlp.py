@@ -36,6 +36,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 import dohfix  # noqa: F401,E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+SEEN = {}                                     # cid -> trade keys already processed (this process)
 S = requests.Session()
 CLOB, GAMMA, DATA = "https://clob.polymarket.com", "https://gamma-api.polymarket.com", "https://data-api.polymarket.com"
 
@@ -146,13 +147,16 @@ def jumpiness(token):
     return sum(abs(b - a) for a, b in zip(p, p[1:])) / (len(p) - 1)
 
 
-def new_trades(cid, since):
-    """taker trades after `since` (unix s), as (ts, YES price, taker bought YES?)"""
+def new_trades(cid, since, seen):
+    """taker trades after `since` (unix s) not already in `seen` (trade keys), as (ts, YES price, taker bought YES?).
+    data-api indexes prints minutes late, so a timestamp cursor would drop late-indexed ones: dedupe by key instead."""
     j = jget(f"{DATA}/trades", market=cid, limit=500, takerOnly="true") or []
     out = []
     for t in j:
-        if t["timestamp"] <= since:
+        key = f'{t.get("transactionHash")}|{t.get("asset")}|{t.get("size")}|{t.get("price")}'
+        if t["timestamp"] <= since or key in seen:
             continue
+        seen.add(key)
         yes_px = float(t["price"]) if t["outcome"] == "Yes" else 1 - float(t["price"])
         bought_yes = (t["side"] == "BUY") == (t["outcome"] == "Yes")
         out.append((t["timestamp"], yes_px, bought_yes))
@@ -211,27 +215,32 @@ def main():
         if t0 - last_loop > 300:                       # came back from an outage (e.g. the school Wi-Fi night curfew):
             for p in st["pos"].values():               # quotes were not live meanwhile, so don't fill them against
                 p["bid"] = p["ask"] = None             # the trades that happened during the gap
-                p["last"] = int(t0)
+                p["qh"] = [[last_loop, None, None]]    # no quote from the last loop until now
             print(datetime.now(timezone.utc).strftime("%H:%M"), f"resumed after {(t0 - last_loop) / 60:.0f} min gap", flush=True)
         last_loop = t0
         for m in st["markets"]:
             p = st["pos"][m["cid"]]
             try:
-                # 1) fills against the quotes we had up since the last sample
-                tr = new_trades(m["cid"], p["last"])
+                # 1) fills: each print is tested against the quote that was LIVE AT ITS TIMESTAMP (RECON_TIGHT.md:
+                # data-api delivers prints ~5 min late; testing them against the current quote was a look-ahead)
+                qh = p.setdefault("qh", [])
+                seen = SEEN.setdefault(m["cid"], set())
+                tr = new_trades(m["cid"], int(t0) - 3600, seen)
                 for ts, px, bought_yes in sorted(tr):
+                    k = next((i for i in range(len(qh) - 1, -1, -1) if qh[i][0] <= ts), None)
+                    if k is None:
+                        continue
+                    q_ = qh[k]
                     # back of the queue: only prints strictly THROUGH our price reach us (60-day replay showed the
                     # at-price "front of queue" rule is fantasy when 20k-2M shares already sit at the touch)
-                    if p["bid"] is not None and not bought_yes and px < p["bid"] - 1e-9:
+                    if q_[1] is not None and not bought_yes and px < q_[1] - 1e-9 and p["inv"] < 2 * a.size:
                         q = min(a.size, -p["inv"]) if a.wind and p["inv"] < 0 else a.size   # --wind: reduce to 0, no flip
-                        p["inv"] += q; p["cash"] -= q * p["bid"]; p["fills"] += 1
-                        log_fill(m, p, ts, "buy_yes", p["bid"], px, q); p["bid"] = None
-                    if p["ask"] is not None and bought_yes and px > p["ask"] + 1e-9:
+                        p["inv"] += q; p["cash"] -= q * q_[1]; p["fills"] += 1
+                        log_fill(m, p, ts, "buy_yes", q_[1], px, q); q_[1] = None    # that quote is used up
+                    if q_[2] is not None and bought_yes and px > q_[2] + 1e-9 and p["inv"] > -2 * a.size:
                         q = min(a.size, p["inv"]) if a.wind and p["inv"] > 0 else a.size
-                        p["inv"] -= q; p["cash"] += q * p["ask"]; p["fills"] += 1
-                        log_fill(m, p, ts, "sell_yes", p["ask"], px, q); p["ask"] = None
-                if tr:
-                    p["last"] = max(ts for ts, _, _ in tr)
+                        p["inv"] -= q; p["cash"] += q * q_[2]; p["fills"] += 1
+                        log_fill(m, p, ts, "sell_yes", q_[2], px, q); q_[2] = None
                 # 2) fresh book -> new quotes and this sample's reward
                 b = book(m["token"])
                 if not b or not b["bids"] or not b["asks"]:
@@ -314,6 +323,9 @@ def main():
                         p["reward_comp_min"] = p.get("reward_comp_min", 0) + 1
             except Exception as err:
                 print(datetime.now(timezone.utc).strftime("%H:%M"), m["question"][:30], "error", repr(err)[:120], flush=True)
+            finally:                                                     # quote history: what was live from when
+                now_ = time.time()                                       # (also on every `continue` path)
+                p["qh"] = [x for x in p.get("qh", []) if x[0] > now_ - 3600][-120:] + [[now_, p["bid"], p["ask"]]]
         json.dump(st, open(state_path, "w"))
         tot = {"t": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                "reward": round(sum(p["reward"] for p in st["pos"].values()), 2),
