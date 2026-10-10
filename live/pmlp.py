@@ -246,6 +246,15 @@ def main():
                 if not b or not b["bids"] or not b["asks"]:
                     p["bid"] = p["ask"] = None
                     p.pop("liq", None)                                       # no book: mtm_liq falls back to mid
+                    if p["inv"] and t0 - p.get("settle_t", 0) > 1800:       # resolved market: settle at 0/1
+                        p["settle_t"] = t0
+                        c = jget(f"{CLOB}/markets/{m['cid']}") or {}
+                        yes = next((x for x in c.get("tokens", []) if x.get("token_id") == m["token"]), None)
+                        if c.get("closed") and yes and any(x.get("winner") for x in c.get("tokens", [])):
+                            px = 1.0 if yes.get("winner") else 0.0
+                            log_fill(m, {**p, "inv": 0.0}, int(t0), "settle", px, None, abs(p["inv"]))
+                            p["cash"] += p["inv"] * px
+                            p["inv"], p["mid"], p["liq"] = 0.0, px, 0.0
                     continue
                 mid = (b["bids"][0][0] + b["asks"][0][0]) / 2
                 p["liq"] = close(p["inv"], b["bids"], b["asks"])[0] if p["inv"] else 0.0   # exit value now (depth-walked)
