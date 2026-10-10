@@ -1,6 +1,7 @@
 name: cloudlp
 # Always-on cloud twin of the paper LP bot pmlp_tight (results/PLAN_CLOUDLP.md): same markets and rules but NO
 # overnight curfew, to measure what the school Wi-Fi blackout costs.  Paper only: no orders, no keys.
+# Also logs Kalshi ETH hourly-range order-book depth at +15 min each hour (live/kxdepth.py; AUDIT_RANGE_FORWARD.md).
 # One run lasts ~5.5 h, commits state + logs to the `cloudlp` branch every 10 min, then starts the next run itself.
 on:
   schedule:
@@ -29,6 +30,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           save() { git add -A live && git commit -q -m "cloudlp $(date -u +%FT%TZ)"; git pull -q --rebase origin cloudlp && git push -q origin HEAD:cloudlp || echo "push failed"; }
+          (while true; do sleep $(( (4500 - $(date +%s) % 3600) % 3600 )); python live/kxdepth.py >> live/kxdepth.log 2>&1 || true; sleep 60; done) &
           (cd live && exec python -u pmlp.py --size 500 --dist tick --no-curfew --tag _cloud_tight --hours 2000 > pmlp_cloud_tight.log 2>&1) &
           bot=$!
           end=$(( $(date +%s) + 325 * 60 ))
