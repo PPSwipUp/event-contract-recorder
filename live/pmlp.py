@@ -250,7 +250,8 @@ def main():
                 mid = (b["bids"][0][0] + b["asks"][0][0]) / 2
                 p["liq"] = close(p["inv"], b["bids"], b["asks"])[0] if p["inv"] else 0.0   # exit value now (depth-walked)
                 if a.wind and quiet():                                       # PLAN_WINDDOWN D: capped cross, hold rest
-                    if p["inv"]:
+                    if p["inv"] and t0 - p.get("cross_t", 0) > 8 * 3600:     # once per night: the paper cross doesn't
+                        p["cross_t"] = t0                                    # deplete the real book, so re-crossing
                         cash, done, avg = close_capped(p["inv"], b["bids"], b["asks"], mid, 2 * m["tick"])
                         if done:
                             p["cash"] += cash
