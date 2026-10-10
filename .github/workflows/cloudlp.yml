@@ -28,7 +28,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          save() { git add -A live && git commit -q -m "cloudlp $(date -u +%FT%TZ)" && git push -q origin HEAD:cloudlp || echo "nothing/push failed"; }
+          save() { git add -A live && git commit -q -m "cloudlp $(date -u +%FT%TZ)"; git pull -q --rebase origin cloudlp && git push -q origin HEAD:cloudlp || echo "push failed"; }
           (cd live && exec python -u pmlp.py --size 500 --dist tick --no-curfew --tag _cloud_tight --hours 2000 > pmlp_cloud_tight.log 2>&1) &
           bot=$!
           end=$(( $(date +%s) + 325 * 60 ))
