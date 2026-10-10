@@ -203,7 +203,11 @@ def main():
     while time.time() < stop:
         t0 = time.time()
         if t0 - comp_t > 600:
-            comp, comp_t = latest_comp(), t0
+            try:
+                comp = latest_comp()
+            except Exception:
+                comp = {}
+            comp_t = t0
         if t0 - last_loop > 300:                       # came back from an outage (e.g. the school Wi-Fi night curfew):
             for p in st["pos"].values():               # quotes were not live meanwhile, so don't fill them against
                 p["bid"] = p["ask"] = None             # the trades that happened during the gap
@@ -219,17 +223,20 @@ def main():
                     # back of the queue: only prints strictly THROUGH our price reach us (60-day replay showed the
                     # at-price "front of queue" rule is fantasy when 20k-2M shares already sit at the touch)
                     if p["bid"] is not None and not bought_yes and px < p["bid"] - 1e-9:
-                        p["inv"] += a.size; p["cash"] -= a.size * p["bid"]; p["fills"] += 1
-                        log_fill(m, p, ts, "buy_yes", p["bid"], px); p["bid"] = None
+                        q = min(a.size, -p["inv"]) if a.wind and p["inv"] < 0 else a.size   # --wind: reduce to 0, no flip
+                        p["inv"] += q; p["cash"] -= q * p["bid"]; p["fills"] += 1
+                        log_fill(m, p, ts, "buy_yes", p["bid"], px, q); p["bid"] = None
                     if p["ask"] is not None and bought_yes and px > p["ask"] + 1e-9:
-                        p["inv"] -= a.size; p["cash"] += a.size * p["ask"]; p["fills"] += 1
-                        log_fill(m, p, ts, "sell_yes", p["ask"], px); p["ask"] = None
+                        q = min(a.size, p["inv"]) if a.wind and p["inv"] > 0 else a.size
+                        p["inv"] -= q; p["cash"] += q * p["ask"]; p["fills"] += 1
+                        log_fill(m, p, ts, "sell_yes", p["ask"], px, q); p["ask"] = None
                 if tr:
                     p["last"] = max(ts for ts, _, _ in tr)
                 # 2) fresh book -> new quotes and this sample's reward
                 b = book(m["token"])
                 if not b or not b["bids"] or not b["asks"]:
                     p["bid"] = p["ask"] = None
+                    p.pop("liq", None)                                       # no book: mtm_liq falls back to mid
                     continue
                 mid = (b["bids"][0][0] + b["asks"][0][0]) / 2
                 p["liq"] = close(p["inv"], b["bids"], b["asks"])[0] if p["inv"] else 0.0   # exit value now (depth-walked)
@@ -241,6 +248,7 @@ def main():
                             p["inv"] -= done
                             log_fill(m, {**p, "mid": mid}, int(t0), "flatten", round(avg, 4), None, abs(done))
                         p["reduce"] = bool(p["inv"])
+                        p["liq"] = close(p["inv"], b["bids"], b["asks"])[0] if p["inv"] else 0.0
                     p["mid"], p["bid"], p["ask"] = mid, None, None
                     continue
                 if quiet() or (a.event_pull and event_pull(t0, m["question"])):   # wind-down (curfew.py / macro.py)
@@ -248,6 +256,7 @@ def main():
                         cash, avg = close(p["inv"], b["bids"], b["asks"])
                         p["cash"] += cash
                         log_fill(m, {**p, "mid": mid, "inv": 0.0}, int(t0), "flatten", round(avg, 4), None, abs(p["inv"]))
+                        p["liq"] = 0.0
                         p["inv"] = 0.0
                     p["mid"], p["bid"], p["ask"] = mid, None, None
                     continue
@@ -257,7 +266,9 @@ def main():
                     end = datetime.fromisoformat(m["end"].replace("Z", "+00:00"))
                     p["pulled"] = (end - datetime.now(timezone.utc) <= timedelta(days=14) or not 0.10 <= mid <= 0.90
                                    or (jump[m["cid"]] or 0) >= thr)
-                    if p["pulled"]:
+                    if p["pulled"] and a.wind and p["inv"]:                  # keep reducing the leftover passively
+                        p["reduce"] = True
+                    elif p["pulled"]:
                         p["mid"], p["bid"], p["ask"] = mid, None, None
                         p["pulled_min"] = p.get("pulled_min", 0) + 1
                         continue
