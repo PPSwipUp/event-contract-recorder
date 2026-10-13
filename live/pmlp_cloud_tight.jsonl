@@ -5516,3 +5516,13 @@
 {"t": "2026-10-13T20:03:40+00:00", "reward": 391.34, "mtm": -282.5, "fills": 63, "mtm_liq": -336.99, "gross_inventory_$": 2077.5, "reward_safe": 391.34, "net": 108.84, "net_safe": 54.35}
 {"t": "2026-10-13T20:04:40+00:00", "reward": 391.75, "mtm": -282.5, "fills": 63, "mtm_liq": -334.99, "gross_inventory_$": 2077.5, "reward_safe": 391.75, "net": 109.25, "net_safe": 56.76}
 {"t": "2026-10-13T20:05:40+00:00", "reward": 392.2, "mtm": -282.5, "fills": 63, "mtm_liq": -338.99, "gross_inventory_$": 2077.5, "reward_safe": 392.2, "net": 109.7, "net_safe": 53.21}
+{"t": "2026-10-13T20:06:40+00:00", "reward": 392.64, "mtm": -282.5, "fills": 63, "mtm_liq": -338.99, "gross_inventory_$": 2077.5, "reward_safe": 392.64, "net": 110.14, "net_safe": 53.65}
+{"t": "2026-10-13T20:07:40+00:00", "reward": 393.08, "mtm": -282.5, "fills": 63, "mtm_liq": -340.02, "gross_inventory_$": 2077.5, "reward_safe": 393.08, "net": 110.58, "net_safe": 53.06}
+{"t": "2026-10-13T20:08:40+00:00", "reward": 393.51, "mtm": -282.5, "fills": 63, "mtm_liq": -340.02, "gross_inventory_$": 2077.5, "reward_safe": 393.51, "net": 111.01, "net_safe": 53.49}
+{"t": "2026-10-13T20:09:40+00:00", "reward": 393.96, "mtm": -282.5, "fills": 63, "mtm_liq": -340.02, "gross_inventory_$": 2077.5, "reward_safe": 393.96, "net": 111.46, "net_safe": 53.94}
+{"t": "2026-10-13T20:10:40+00:00", "reward": 394.39, "mtm": -282.5, "fills": 63, "mtm_liq": -341.04, "gross_inventory_$": 2077.5, "reward_safe": 394.39, "net": 111.89, "net_safe": 53.35}
+{"t": "2026-10-13T20:11:40+00:00", "reward": 394.82, "mtm": -282.5, "fills": 63, "mtm_liq": -341.04, "gross_inventory_$": 2077.5, "reward_safe": 394.82, "net": 112.32, "net_safe": 53.78}
+{"t": "2026-10-13T20:12:40+00:00", "reward": 395.26, "mtm": -282.5, "fills": 63, "mtm_liq": -341.04, "gross_inventory_$": 2077.5, "reward_safe": 395.26, "net": 112.76, "net_safe": 54.22}
+{"t": "2026-10-13T20:13:40+00:00", "reward": 395.69, "mtm": -282.5, "fills": 63, "mtm_liq": -341.04, "gross_inventory_$": 2077.5, "reward_safe": 395.69, "net": 113.19, "net_safe": 54.65}
+{"t": "2026-10-13T20:14:40+00:00", "reward": 396.14, "mtm": -282.5, "fills": 63, "mtm_liq": -341.04, "gross_inventory_$": 2077.5, "reward_safe": 396.14, "net": 113.64, "net_safe": 55.1}
+{"t": "2026-10-13T20:15:40+00:00", "reward": 396.59, "mtm": -282.5, "fills": 63, "mtm_liq": -341.04, "gross_inventory_$": 2077.5, "reward_safe": 396.59, "net": 114.09, "net_safe": 55.55}
