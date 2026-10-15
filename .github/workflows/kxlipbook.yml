@@ -5,7 +5,7 @@ name: kxlipbook
 # Primary data source is the Predexon backfill; this is the cross-check / fallback.
 on:
   schedule:
-    - cron: "17 * * * *"          # restarter if the chain breaks; exits at once outside the window
+    - cron: "17 * * * *"          # restarter if the chain breaks (GitHub may delay these by hours); exits at once outside the window
   workflow_dispatch:
     inputs:
       test_seconds:
@@ -19,7 +19,7 @@ concurrency:
   group: kxlipbook
   cancel-in-progress: false
 env:
-  WIN_START: "2026-10-15T21:00:00Z"
+  WIN_START: "2026-10-15T20:00:00Z"
   WIN_END: "2026-10-20T04:00:00Z"
 jobs:
   run:
