@@ -37,7 +37,9 @@ jobs:
       - uses: actions/checkout@v4
         if: steps.win.outputs.in == '1'
         with:
-          sparse-checkout: live/kxlipbook.py
+          sparse-checkout: |
+            live/kxlipbook.py
+            live/nfllip_paper.py
           sparse-checkout-cone-mode: false
       - uses: actions/setup-python@v5
         if: steps.win.outputs.in == '1'
@@ -46,9 +48,12 @@ jobs:
       - name: record
         if: steps.win.outputs.in == '1'
         run: |
-          pip install -q requests
+          pip install -q requests numpy
           mkdir -p out
+          # paper-only NFL LIP bot (no orders, no keys) reads the recorder's books as they are written; state restarts each run
+          python -u live/nfllip_paper.py --root out/kxlipbook --out out/nfllip_paper.jsonl --max-seconds ${{ steps.win.outputs.secs }} > out/nfllip_paper.log 2>&1 &
           python -u live/kxlipbook.py --root out/kxlipbook --log out/kxlipbook.log --max-seconds ${{ steps.win.outputs.secs }} || true
+          wait || true
       - uses: actions/upload-artifact@v4
         if: always() && steps.win.outputs.in == '1'
         with:
