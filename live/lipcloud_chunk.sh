@@ -10,7 +10,7 @@ kind=$1; secs=$2
 TAG=${TAG:-main}; PY=${PYTHON:-python}
 cd "$(dirname "$0")/.."
 mkdir -p out state
-sname="lipcloud-state-$kind-$TAG"
+sname="lipcloud-state-lip$kind-$TAG"
 case $kind in
   gen) rec=lipgen_rec.py; draw_seed=live/lipgen_draw.jsonl; draw=state/lipgen_draw_cloud.jsonl ;;
   alt) rec=lipalt_rec.py; draw_seed=live/lipalt_draw.jsonl; draw=state/lipalt_draw_cloud.jsonl ;;
