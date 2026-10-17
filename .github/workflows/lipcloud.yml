@@ -8,6 +8,8 @@ run-name: "lipcloud ${{ inputs.tag || 'main' }}${{ inputs.test_seconds && ' smok
 # `lipcloud-state-<job>-<tag>` artifact.  Data artifacts `lipcloud-<job>-<tag>-<run id>` (90 d).  An hourly cron restarts a broken chain.
 # Stop: `gh workflow disable lipcloud.yml` (+ cancel the queued run).  Chain ends by itself at window_end.
 on:
+  schedule:
+    - cron: "23 * * * *"
   workflow_dispatch:
     inputs:
       tag:
