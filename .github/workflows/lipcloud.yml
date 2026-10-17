@@ -22,6 +22,10 @@ on:
         description: "stop chaining at this UTC time (default 2026-11-10T00:00:00Z)"
         required: false
         default: ""
+      chunk_seconds:
+        description: "seconds recorded per run (default 19500 = 5.4 h; short values only to test the chaining)"
+        required: false
+        default: ""
 permissions:
   contents: read
   actions: write
@@ -65,6 +69,7 @@ jobs:
       TAG: ${{ inputs.tag || 'main' }}
       TEST_SECS: ${{ inputs.test_seconds }}
       END: ${{ inputs.window_end || '2026-11-10T00:00:00Z' }}
+      CHUNK: ${{ inputs.chunk_seconds || '19500' }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: window
@@ -74,7 +79,7 @@ jobs:
           if [ -n "$TEST_SECS" ]; then secs=$TEST_SECS; chain=0; in=1
           elif [ "$rem" -le 120 ]; then secs=0; chain=0; in=0
           else
-            secs=$(( rem < 325*60 ? rem : 325*60 ))
+            secs=$(( rem < CHUNK ? rem : CHUNK ))
             if [ $(( rem - secs )) -gt 300 ]; then chain=1; else chain=0; fi
             in=1
           fi
@@ -84,7 +89,7 @@ jobs:
         if: steps.win.outputs.chain == '1' && matrix.job == 'lipalt'
         run: |
           for i in 1 2 3 4 5; do
-            gh workflow run lipcloud.yml --ref main -R "$GITHUB_REPOSITORY" -f tag="$TAG" -f window_end="$END" && break
+            gh workflow run lipcloud.yml --ref main -R "$GITHUB_REPOSITORY" -f tag="$TAG" -f window_end="$END" -f chunk_seconds="$CHUNK" && break
             sleep 15
           done
       - uses: actions/checkout@v4
