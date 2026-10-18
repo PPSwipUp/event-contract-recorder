@@ -1,26 +1,42 @@
 name: nflwatch
 # Cloud copy of live/nfl_lip_watch.py so the NFL LIP check runs while the laptop is closed.
 # PAPER ONLY, public unauthenticated GET only: no keys, no orders, no secrets.
-# Every 30 min counts active Kalshi NFL player-prop liquidity programs (LADDER/ESCALATOR/FFPTS/PROT series).
+# Each run loops ~5.5 h, checking every 30 min for active Kalshi NFL player-prop liquidity programs (LADDER/ESCALATOR/FFPTS/PROT series),
+# then dispatches the next run (GitHub cron fires only every few hours, so the cron below is just a restarter for a broken chain).
 # When any are active and no open "NFL LIP back" issue exists, opens one (GitHub notifies the repo owner).
-# Stop: `gh workflow disable nflwatch.yml`.
+# Stop: `gh workflow disable nflwatch.yml` (+ cancel the running/queued run).
 on:
   schedule:
-    - cron: "17,47 * * * *"
+    - cron: "17 */3 * * *"
   workflow_dispatch:
 permissions:
   contents: read
   issues: write
+  actions: write
+concurrency:
+  group: nflwatch
+  cancel-in-progress: false
 jobs:
   watch:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 345
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
     steps:
-      - name: count NFL prop LIP programs
-        id: c
+      - name: gate (skip if another run is already active)
+        id: g
         run: |
-          python3 - <<'PY'
-          import json, os, urllib.parse, urllib.request
+          n=$(gh run list --workflow nflwatch.yml --status in_progress --json databaseId --jq "[.[]|select(.databaseId != ${{ github.run_id }})]|length")
+          echo "others in progress: $n"
+          echo "go=$([ "$n" = 0 ] && echo 1 || echo 0)" >> "$GITHUB_OUTPUT"
+      - name: loop
+        if: steps.g.outputs.go == '1'
+        run: |
+          end=$(( $(date +%s) + 19800 ))
+          while :; do
+            out=$(python3 - <<'PY'
+          import json, urllib.parse, urllib.request
           API = "https://api.elections.kalshi.com/trade-api/v2/incentive_programs"
           KEYS = ("LADDER", "ESCALATOR", "FFPTS", "PROT")
           rows, cur = [], None
@@ -39,24 +55,20 @@ jobs:
               s = r["market_ticker"].split("-")[0]
               if s.startswith("KXNFL") and any(k in s for k in KEYS):
                   found[s] = found.get(s, 0) + 1
-          n = sum(found.values())
-          print(f"active liquidity programs scanned: {len(rows)}; NFL prop: {n} {found}")
-          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-              f.write(f"n={n}\nfound={json.dumps(found)}\n")
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
-              f.write(f"NFL prop LIP programs active: {n} {found}\n")
+          print(sum(found.values()), len(rows), json.dumps(found))
           PY
-      - name: open alert issue
-        if: steps.c.outputs.n != '0'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          N: ${{ steps.c.outputs.n }}
-          FOUND: ${{ steps.c.outputs.found }}
-        run: |
-          if [ -z "$(gh issue list --state open --search 'NFL LIP back in:title' --json number --jq '.[].number')" ]; then
-            gh issue create --title "NFL LIP back: $N programs active ($(date -u '+%a %d %b %H:%MZ'))" \
-              --body "Kalshi NFL player-prop liquidity programs are active again: $FOUND. Paper only. Laptop: run the NFL LIP plan scoring per HANDOFF.md. Close this issue to re-arm the alert."
-          else
-            echo "alert issue already open"
-          fi
+            ) || out="err 0 {}"
+            read -r n tot found <<< "$out"
+            echo "$(date -u '+%a %d %b %H:%MZ') scanned $tot; NFL prop: $n $found" | tee -a "$GITHUB_STEP_SUMMARY"
+            if [ "$n" != "0" ] && [ "$n" != "err" ]; then
+              if [ -z "$(gh issue list --state open --search 'NFL LIP back in:title' --json number --jq '.[].number')" ]; then
+                gh issue create --title "NFL LIP back: $n programs active ($(date -u '+%a %d %b %H:%MZ'))" \
+                  --body "Kalshi NFL player-prop liquidity programs are active again: $found. Paper only. Laptop: run the NFL LIP plan scoring per HANDOFF.md. Close this issue to re-arm the alert."
+              fi
+            fi
+            [ $(( $(date +%s) + 1800 )) -ge $end ] && break
+            sleep 1800
+          done
+      - name: chain next run
+        if: steps.g.outputs.go == '1'
+        run: gh workflow run nflwatch.yml --ref main
