@@ -1,0 +1,62 @@
+name: nflwatch
+# Cloud copy of live/nfl_lip_watch.py so the NFL LIP check runs while the laptop is closed.
+# PAPER ONLY, public unauthenticated GET only: no keys, no orders, no secrets.
+# Every 30 min counts active Kalshi NFL player-prop liquidity programs (LADDER/ESCALATOR/FFPTS/PROT series).
+# When any are active and no open "NFL LIP back" issue exists, opens one (GitHub notifies the repo owner).
+# Stop: `gh workflow disable nflwatch.yml`.
+on:
+  schedule:
+    - cron: "17,47 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: count NFL prop LIP programs
+        id: c
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          API = "https://api.elections.kalshi.com/trade-api/v2/incentive_programs"
+          KEYS = ("LADDER", "ESCALATOR", "FFPTS", "PROT")
+          rows, cur = [], None
+          for _ in range(40):
+              p = {"status": "active", "type": "liquidity", "limit": 1000}
+              if cur:
+                  p["cursor"] = cur
+              with urllib.request.urlopen(API + "?" + urllib.parse.urlencode(p), timeout=30) as r:
+                  d = json.load(r)
+              rows += d.get("incentive_programs") or []
+              cur = d.get("next_cursor")
+              if not cur or not d.get("incentive_programs"):
+                  break
+          found = {}
+          for r in rows:
+              s = r["market_ticker"].split("-")[0]
+              if s.startswith("KXNFL") and any(k in s for k in KEYS):
+                  found[s] = found.get(s, 0) + 1
+          n = sum(found.values())
+          print(f"active liquidity programs scanned: {len(rows)}; NFL prop: {n} {found}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"n={n}\nfound={json.dumps(found)}\n")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write(f"NFL prop LIP programs active: {n} {found}\n")
+          PY
+      - name: open alert issue
+        if: steps.c.outputs.n != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          N: ${{ steps.c.outputs.n }}
+          FOUND: ${{ steps.c.outputs.found }}
+        run: |
+          if [ -z "$(gh issue list --state open --search 'NFL LIP back in:title' --json number --jq '.[].number')" ]; then
+            gh issue create --title "NFL LIP back: $N programs active ($(date -u '+%a %d %b %H:%MZ'))" \
+              --body "Kalshi NFL player-prop liquidity programs are active again: $FOUND. Paper only. Laptop: run the NFL LIP plan scoring per HANDOFF.md. Close this issue to re-arm the alert."
+          else
+            echo "alert issue already open"
+          fi
