@@ -3,6 +3,8 @@ name: cloudlp
 # overnight curfew, to measure what the school Wi-Fi blackout costs.  Paper only: no orders, no keys.
 # Also logs Kalshi ETH hourly-range order-book depth at +15 min each hour (live/kxdepth.py; AUDIT_RANGE_FORWARD.md).
 # One run lasts ~5.5 h, commits state + logs to the `cloudlp` branch every 10 min, then starts the next run itself.
+# 19 Oct amendment (PLAN_CLOUDLP): live/pmcomp_pub.py (public competitiveness, no keys) feeds reward_safe; websocket twin
+# pmlpws_cloud_ws (same 20 markets, pmlpws --no-curfew; laptop control pmlpws_ws); run starts/ends logged to live/cloudlp_runs.jsonl.
 on:
   schedule:
     - cron: "37 * * * *"
@@ -24,21 +26,27 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -q requests
+      - run: pip install -q requests websockets
       - name: paper bot with periodic commits
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           save() { git add -A live && git commit -q -m "cloudlp $(date -u +%FT%TZ)"; git pull -q --rebase origin cloudlp && git push -q origin HEAD:cloudlp || echo "push failed"; }
           (while true; do sleep $(( (4500 - $(date +%s) % 3600) % 3600 )); python live/kxdepth.py >> live/kxdepth.log 2>&1 || true; sleep 60; done) &
+          echo "{\"t\": \"$(date -u +%FT%TZ)\", \"ev\": \"start\", \"run\": \"${{ github.run_id }}\"}" >> live/cloudlp_runs.jsonl
+          (cd live && exec python -u pmcomp_pub.py --hours 6 >> pmcomp_pub.log 2>&1) &
+          comp=$!
           (cd live && exec python -u pmlp.py --size 500 --dist tick --no-curfew --tag _cloud_tight --hours 2000 > pmlp_cloud_tight.log 2>&1) &
           bot=$!
+          (cd live && exec python -u pmlpws.py --tag _cloud_ws --no-curfew --hours 2000 >> pmlpws_cloud_ws.log 2>&1) &
+          ws=$!
           end=$(( $(date +%s) + 325 * 60 ))
           while [ "$(date +%s)" -lt "$end" ] && kill -0 $bot 2>/dev/null; do
             sleep 600
             save
           done
-          kill $bot 2>/dev/null; sleep 5
+          kill $bot $ws $comp 2>/dev/null; sleep 5
+          echo "{\"t\": \"$(date -u +%FT%TZ)\", \"ev\": \"end\", \"run\": \"${{ github.run_id }}\"}" >> live/cloudlp_runs.jsonl
           save
       - name: start the next run
         if: always()
