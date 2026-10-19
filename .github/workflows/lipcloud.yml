@@ -21,7 +21,7 @@ on:
         required: false
         default: ""
       window_end:
-        description: "stop chaining at this UTC time (default 2026-11-10T00:00:00Z)"
+        description: "stop chaining at this UTC time (default 2027-01-20T00:00:00Z)"
         required: false
         default: ""
       chunk_seconds:
@@ -42,7 +42,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           EVENT: ${{ github.event_name }}
-          END: ${{ inputs.window_end || '2026-11-10T00:00:00Z' }}
+          END: ${{ inputs.window_end || '2027-01-20T00:00:00Z' }}
         run: |
           go=true
           if [ "$EVENT" = schedule ]; then
@@ -70,7 +70,7 @@ jobs:
     env:
       TAG: ${{ inputs.tag || 'main' }}
       TEST_SECS: ${{ inputs.test_seconds }}
-      END: ${{ inputs.window_end || '2026-11-10T00:00:00Z' }}
+      END: ${{ inputs.window_end || '2027-01-20T00:00:00Z' }}
       CHUNK: ${{ inputs.chunk_seconds || '19500' }}
       GH_TOKEN: ${{ github.token }}
     steps:
