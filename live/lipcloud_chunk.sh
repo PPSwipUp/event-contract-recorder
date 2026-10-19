@@ -14,7 +14,8 @@ sname="lipcloud-state-lip$kind-$TAG"
 case $kind in
   gen) rec=lipgen_rec.py; draw_seed=live/lipgen_draw.jsonl; draw=state/lipgen_draw_cloud.jsonl ;;
   alt) rec=lipalt_rec.py; draw_seed=live/lipalt_draw.jsonl; draw=state/lipalt_draw_cloud.jsonl ;;
-  *) echo "kind must be gen|alt"; exit 2 ;;
+  f2)  rec=lipf2_rec.py; draw_seed=live/lipf2_draw.jsonl; draw=state/lipf2_draw_cloud.jsonl ;;     # PLAN_LIP_F2_FWD (workflow lipf2.yml)
+  *) echo "kind must be gen|alt|f2"; exit 2 ;;
 esac
 root=out/lip${kind}_cloud; pout=out/lip${kind}_paper_cloud.jsonl; pstate=state/lip${kind}_paper_state.json
 
