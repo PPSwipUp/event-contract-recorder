@@ -1,0 +1,122 @@
+name: lipf2
+run-name: "lipf2 ${{ inputs.tag || 'main' }}${{ inputs.test_seconds && ' smoke' || '' }}"
+# lipf2 = copy of lipcloud.yml for results/PLAN_LIP_F2_FWD.md (kind f2, own chain/state, ends 2026-12-15). lipcloud.yml is untouched.
+# GitHub Actions twin of the laptop Kalshi LIP forward paper tests (results/PLAN_LIP_GENERAL_FWD.md, results/PLAN_LIP_ALTDATA_FWD.md) so they keep
+# recording while the laptop is closed.  Two parallel jobs: lipgen (seeded 120-program draw) and lipalt (APP/FT/CC family), each = recorder +
+# paper bot from branch `lipcloud` (live/lipcloud_chunk.sh).  PAPER ONLY, public unauthenticated GET only: no keys, no orders, no secrets.
+# Each run records ~5.4 h; the lipalt job dispatches the NEXT run at its START, which queues behind this one through the per-job concurrency
+# group (so the hand-over gap is ~1 min of setup, not a dispatch delay).  Paper state + draw files carry to the next run through a small
+# `lipcloud-state-<job>-<tag>` artifact.  Data artifacts `lipcloud-<job>-<tag>-<run id>` (90 d).  An hourly cron restarts a broken chain.
+# Stop: `gh workflow disable lipcloud.yml` (+ cancel the queued run).  Chain ends by itself at window_end.
+on:
+  schedule:
+    - cron: "41 * * * *"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "namespace for artifacts/state/concurrency (main = the real chain; use another tag for tests)"
+        required: false
+        default: "main"
+      test_seconds:
+        description: "smoke test: record this many seconds, ignore the window, do not chain"
+        required: false
+        default: ""
+      window_end:
+        description: "stop chaining at this UTC time (default 2026-12-15T00:00:00Z)"
+        required: false
+        default: ""
+      chunk_seconds:
+        description: "seconds recorded per run (default 19500 = 5.4 h; short values only to test the chaining)"
+        required: false
+        default: ""
+permissions:
+  contents: read
+  actions: write
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      go: ${{ steps.g.outputs.go }}
+    steps:
+      - id: g
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          END: ${{ inputs.window_end || '2026-12-15T00:00:00Z' }}
+        run: |
+          go=true
+          if [ "$EVENT" = schedule ]; then
+            # restarter: only act when the window is open and no other real run is queued / in progress
+            rem=$(( $(date -u -d "$END" +%s) - $(date -u +%s) ))
+            [ "$rem" -le 600 ] && go=false
+            n=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/lipf2.yml/runs?per_page=50" \
+                --jq "[.workflow_runs[]|select(.status!=\"completed\" and .id!=$GITHUB_RUN_ID and (.display_title|startswith(\"lipf2 main\")))]|length") || n=1
+            [ "$n" != 0 ] && go=false
+            echo "restarter: rem=$rem other_active=$n"
+          fi
+          echo "go=$go" >> "$GITHUB_OUTPUT"
+  run:
+    needs: gate
+    if: needs.gate.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    strategy:
+      fail-fast: false
+      matrix:
+        job: [lipf2]
+    concurrency:
+      group: lipf2-${{ inputs.tag || 'main' }}-${{ matrix.job }}
+      cancel-in-progress: false
+    env:
+      TAG: ${{ inputs.tag || 'main' }}
+      TEST_SECS: ${{ inputs.test_seconds }}
+      END: ${{ inputs.window_end || '2026-12-15T00:00:00Z' }}
+      CHUNK: ${{ inputs.chunk_seconds || '19500' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: window
+        id: win
+        run: |
+          now=$(date -u +%s); b=$(date -u -d "$END" +%s); rem=$(( b - now ))
+          if [ -n "$TEST_SECS" ]; then secs=$TEST_SECS; chain=0; in=1
+          elif [ "$rem" -le 120 ]; then secs=0; chain=0; in=0
+          else
+            secs=$(( rem < CHUNK ? rem : CHUNK ))
+            if [ $(( rem - secs )) -gt 300 ]; then chain=1; else chain=0; fi
+            in=1
+          fi
+          echo "secs=$secs" >> "$GITHUB_OUTPUT"; echo "chain=$chain" >> "$GITHUB_OUTPUT"; echo "in=$in" >> "$GITHUB_OUTPUT"
+          echo "job=${{ matrix.job }} tag=$TAG now=$(date -u +%FT%TZ) end=$END secs=$secs chain=$chain in=$in"
+      - name: queue the next run (queues behind this run)
+        if: steps.win.outputs.chain == '1'
+        run: |
+          for i in 1 2 3 4 5; do
+            gh workflow run lipf2.yml --ref main -R "$GITHUB_REPOSITORY" -f tag="$TAG" -f window_end="$END" -f chunk_seconds="$CHUNK" && break
+            sleep 15
+          done
+      - uses: actions/checkout@v4
+        if: steps.win.outputs.in == '1'
+        with:
+          ref: lipcloud
+      - uses: actions/setup-python@v5
+        if: steps.win.outputs.in == '1'
+        with:
+          python-version: "3.12"
+      - name: record + paper
+        if: steps.win.outputs.in == '1'
+        run: |
+          pip install -q requests
+          bash live/lipcloud_chunk.sh f2 "${{ steps.win.outputs.secs }}"
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.win.outputs.in == '1'
+        with:
+          name: lipf2-${{ matrix.job }}-${{ env.TAG }}-${{ github.run_id }}
+          path: out
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.win.outputs.in == '1'
+        with:
+          name: lipcloud-state-${{ matrix.job }}-${{ env.TAG }}
+          path: state
+          retention-days: 90
