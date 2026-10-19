@@ -19,7 +19,7 @@ sys.path.insert(0, HERE)
 import kxlipbook as KL  # noqa: E402
 import lipgen_paper as GP  # noqa: E402
 
-KINDS = {"gen": (0.4, "lipgen-readonly/1.0"), "alt": (1.4, "lipalt-readonly/1.0"), "f2": (1.4, "lipf2-readonly/1.0")}   # f2: PLAN_LIP_F2_FWD
+KINDS = {"gen": (0.4, "lipgen-readonly/1.0"), "alt": (1.4, "lipalt-readonly/1.0"), "f2": (1.4, "lipf2-readonly/1.0"), "f4e": (1.4, "lipf4e-readonly/1.0")}   # f2: PLAN_LIP_F2_FWD, f4e: PLAN_LIP_F4E_FWD
 TK_FIELDS = ("p", "inv", "cost", "reward", "fills", "mid", "win_reward", "win_cov", "win_fills0", "closed")
 
 

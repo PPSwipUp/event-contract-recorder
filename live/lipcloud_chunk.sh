@@ -15,7 +15,8 @@ case $kind in
   gen) rec=lipgen_rec.py; draw_seed=live/lipgen_draw.jsonl; draw=state/lipgen_draw_cloud.jsonl ;;
   alt) rec=lipalt_rec.py; draw_seed=live/lipalt_draw.jsonl; draw=state/lipalt_draw_cloud.jsonl ;;
   f2)  rec=lipf2_rec.py; draw_seed=live/lipf2_draw.jsonl; draw=state/lipf2_draw_cloud.jsonl ;;     # PLAN_LIP_F2_FWD (workflow lipf2.yml)
-  *) echo "kind must be gen|alt|f2"; exit 2 ;;
+  f4e) rec=lipf4e_rec.py; draw_seed=live/lipf4e_draw.jsonl; draw=state/lipf4e_draw_cloud.jsonl ;;  # PLAN_LIP_F4E_FWD (workflow lipf4e.yml)
+  *) echo "kind must be gen|alt|f2|f4e"; exit 2 ;;
 esac
 root=out/lip${kind}_cloud; pout=out/lip${kind}_paper_cloud.jsonl; pstate=state/lip${kind}_paper_state.json
 
