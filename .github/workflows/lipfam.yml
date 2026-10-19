@@ -1,0 +1,79 @@
+name: lipfam
+run-name: "lipfam ${{ inputs.jobs }}"
+# Downloads for results/PLAN_LIP_FAMILIES.md: Kalshi market meta, trades and 1-min candles for the frozen family window list
+# (branch lipfam: backfill/lipfam_windows.csv + backfill/lipfam_dl.py + backfill/kalshi_lip_bt.py).
+# PUBLIC unauthenticated Kalshi GET only: no keys, no orders, no secrets.  One job per family x shard (3 shards by md5(ticker)); each resumes from
+# its newest `lipfam-<family>_s<k>` artifact and re-dispatches itself if it stops at the deadline (exit 3).
+# Laptop: download the artifacts (`gh run download`), then backfill/lip_families.py --stage ingest.
+on:
+  workflow_dispatch:
+    inputs:
+      jobs:
+        description: "comma list of family:shard (empty = all 5 families x 3 shards)"
+        required: false
+        default: ""
+permissions:
+  contents: read
+  actions: write
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      jobs: ${{ steps.m.outputs.jobs }}
+    steps:
+      - id: m
+        run: |
+          echo "jobs=$(python3 -c "
+          import json, sys
+          a = [x for x in sys.argv[1].split(',') if x]
+          a = a or [f'{f}:{k}' for f in ('F1_CARBONARC', 'F2_NICHEPANEL', 'F3_KPI', 'F4_MACRO', 'F5_PUBLICFEED') for k in range(3)]
+          print(json.dumps(a))" '${{ inputs.jobs }}')" >> "$GITHUB_OUTPUT"
+  dl:
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        job: ${{ fromJSON(needs.setup.outputs.jobs) }}
+    concurrency:
+      group: lipfam-${{ matrix.job }}
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      JOB: ${{ matrix.job }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: lipfam
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pandas numpy requests
+      - name: names
+        run: |
+          FAM=${JOB%%:*}; K=${JOB##*:}
+          echo "FAM=$FAM" >> "$GITHUB_ENV"; echo "K=$K" >> "$GITHUB_ENV"; echo "NAME=${FAM}_s${K}" >> "$GITHUB_ENV"
+      - name: resume from newest artifact
+        run: |
+          url=$(gh api "repos/$GH_REPO/actions/artifacts?name=lipfam-$NAME&per_page=1" --jq '.artifacts[0] | select(.expired==false) | .archive_download_url' || true)
+          if [ -n "$url" ]; then gh api "$url" > prev.zip && unzip -o -q prev.zip && ls -la "$NAME.sqlite"; else echo "fresh start"; fi
+      - name: download
+        id: d
+        run: |
+          set +e
+          python -u backfill/lipfam_dl.py --windows backfill/lipfam_windows.csv --family "$FAM" --db "$NAME.sqlite" --shard "$K" --nshards 3 --deadline-min 315
+          echo "rc=$?" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lipfam-${{ env.NAME }}
+          path: ${{ env.NAME }}.sqlite
+          retention-days: 30
+          compression-level: 6
+      - name: chain if unfinished
+        if: steps.d.outputs.rc == '3'
+        run: gh workflow run lipfam.yml --ref main -f jobs="$JOB"
+      - name: fail on unexpected error
+        if: steps.d.outputs.rc != '0' && steps.d.outputs.rc != '3'
+        run: exit 1
