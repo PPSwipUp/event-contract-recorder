@@ -808,3 +808,5 @@
 09:03:22 reconnect in 300 s: ValueError('ssl=None is incompatible with a wss:// URI')
 09:08:22 reconnect in 300 s: ValueError('ssl=None is incompatible with a wss:// URI')
 09:13:22 reconnect in 300 s: ValueError('ssl=None is incompatible with a wss:// URI')
+09:18:22 reconnect in 300 s: ValueError('ssl=None is incompatible with a wss:// URI')
+09:23:22 reconnect in 300 s: ValueError('ssl=None is incompatible with a wss:// URI')
