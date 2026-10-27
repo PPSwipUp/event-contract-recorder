@@ -2,12 +2,12 @@
 
 Pre-registered: success = day-level t above 2 after at least 60 days.
 
-Days: 24 · bets: 145 · total at 100 contracts: **$320** · day-level t: **0.74**
+Days: 25 · bets: 156 · total at 100 contracts: **$283** · day-level t: **0.66**
 
 | series   |   days |   bets |   dollars_100 |
 |:---------|-------:|-------:|--------------:|
-| KXBTC    |     24 |     86 |        648.58 |
-| KXETH    |     24 |     59 |       -328.22 |
+| KXBTC    |     25 |     94 |        670.88 |
+| KXETH    |     25 |     62 |       -387.4  |
 
 | day        | series   |   events |   bets |   pnl_c |
 |:-----------|:---------|---------:|-------:|--------:|
@@ -59,3 +59,5 @@ Days: 24 · bets: 145 · total at 100 contracts: **$320** · day-level t: **0.74
 | 2026-10-24 | KXETH    |       24 |      5 |  -69.85 |
 | 2026-10-25 | KXBTC    |       24 |     12 |  209.05 |
 | 2026-10-25 | KXETH    |       24 |      4 |    7.87 |
+| 2026-10-26 | KXBTC    |       24 |      8 |   22.3  |
+| 2026-10-26 | KXETH    |       24 |      3 |  -59.18 |
