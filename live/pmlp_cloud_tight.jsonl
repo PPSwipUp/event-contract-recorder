@@ -31973,3 +31973,8 @@
 {"t": "2026-11-02T19:31:03+00:00", "reward": 11476.08, "mtm": -2560.0, "fills": 602, "mtm_liq": -2637.18, "gross_inventory_$": 3130.0, "reward_comp": 1991.18, "reward_safe": 5150.55, "net": 8916.08, "net_safe": 2513.37}
 {"t": "2026-11-02T19:32:53+00:00", "reward": 11476.58, "mtm": -2560.0, "fills": 602, "mtm_liq": -2635.64, "gross_inventory_$": 3130.0, "reward_comp": 1991.23, "reward_safe": 5150.6, "net": 8916.58, "net_safe": 2514.96}
 {"t": "2026-11-02T19:34:41+00:00", "reward": 11477.06, "mtm": -2560.0, "fills": 602, "mtm_liq": -2635.64, "gross_inventory_$": 3130.0, "reward_comp": 1991.28, "reward_safe": 5150.64, "net": 8917.06, "net_safe": 2515.0}
+{"t": "2026-11-02T19:36:29+00:00", "reward": 11477.54, "mtm": -2560.0, "fills": 602, "mtm_liq": -2635.64, "gross_inventory_$": 3130.0, "reward_comp": 1991.33, "reward_safe": 5150.69, "net": 8917.54, "net_safe": 2515.05}
+{"t": "2026-11-02T19:38:19+00:00", "reward": 11478.0, "mtm": -2560.0, "fills": 602, "mtm_liq": -2635.64, "gross_inventory_$": 3130.0, "reward_comp": 1991.37, "reward_safe": 5150.74, "net": 8918.0, "net_safe": 2515.1}
+{"t": "2026-11-02T19:40:07+00:00", "reward": 11478.45, "mtm": -2560.0, "fills": 602, "mtm_liq": -2635.64, "gross_inventory_$": 3130.0, "reward_comp": 1991.42, "reward_safe": 5150.78, "net": 8918.45, "net_safe": 2515.14}
+{"t": "2026-11-02T19:41:56+00:00", "reward": 11478.88, "mtm": -2560.0, "fills": 602, "mtm_liq": -2635.64, "gross_inventory_$": 3130.0, "reward_comp": 1991.48, "reward_safe": 5150.84, "net": 8918.88, "net_safe": 2515.2}
+{"t": "2026-11-02T19:43:46+00:00", "reward": 11479.32, "mtm": -2570.0, "fills": 602, "mtm_liq": -2645.64, "gross_inventory_$": 3140.0, "reward_comp": 1991.53, "reward_safe": 5150.89, "net": 8909.32, "net_safe": 2505.25}
