@@ -2,7 +2,7 @@
 
 ETH hourly ranges, 15 min after open, rolling recalibration + volatility view, >5c edge after fees, 100 contracts per bet. Pre-registered: success = day-level t above 2 after at least 60 days.
 
-Days: 40 · bets: 111 · total at 100 contracts: **$-593** · per bet: -5.3c · day-level t: **-1.78** · winning days: 15 / 36 with bets
+Days: 41 · bets: 116 · total at 100 contracts: **$-600** · per bet: -5.2c · day-level t: **-1.80** · winning days: 15 / 37 with bets
 
 | day        |   events |   bets |   dollars_100 |
 |:-----------|---------:|-------:|--------------:|
@@ -46,3 +46,4 @@ Days: 40 · bets: 111 · total at 100 contracts: **$-593** · per bet: -5.3c · 
 | 2026-11-07 |       24 |      6 |         32.87 |
 | 2026-11-08 |       24 |      2 |        -85.39 |
 | 2026-11-09 |       24 |      4 |        -81.31 |
+| 2026-11-10 |       24 |      5 |         -6.59 |
